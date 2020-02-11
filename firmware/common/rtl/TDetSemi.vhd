@@ -2,7 +2,7 @@
 -- File       : TDetSemi.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-02-08
+-- Last update: 2020-02-11
 -------------------------------------------------------------------------------
 -- Description: TDetSemi File
 -------------------------------------------------------------------------------
@@ -150,6 +150,9 @@ architecture mapping of TDetSemi is
   signal r   : RegArray(NUM_LANES_G-1 downto 0) := (others=>REG_INIT_C);
   signal rin : RegArray(NUM_LANES_G-1 downto 0);
 
+  signal t_dataI   : slv(63 downto 0);
+  signal t_dataO   : slv(63 downto 0);
+  
   constant DEBUG_C : boolean := DEBUG_G;
 
   component ila_0
@@ -162,6 +165,9 @@ begin
   dmaClks <= idmaClks;
   dmaRsts <= idmaRsts;
 
+  t_dataI <= tdetAxisMaster(0).tData(t_dataI'range);
+  t_dataO <= r(0).txMaster.tData(t_dataO'range);
+  
   GEN_LANE : for i in 0 to NUM_LANES_G-1 generate
     idmaClks(i)     <= tdetClk;
     idmaRsts(i)     <= tdetClkRst;
@@ -175,8 +181,8 @@ begin
     --end if;
     dmaObSlaves (i) <= AXI_STREAM_SLAVE_FORCE_C;
   end generate;
-  
-  acomb : process ( a, axilRst, axilReadMaster, axilWriteMaster, modPrsL  ) is
+
+  acomb : process ( a, axilRst, axilReadMaster, axilWriteMaster, modPrsL ) is
     variable v  : AxiRegType;
     variable ep : AxiLiteEndpointType;
   begin
@@ -186,7 +192,7 @@ begin
     axiSlaveRegister( ep, x"00", 3, v.clear  );
     axiSlaveRegister( ep, x"00", 4, v.length );
     axiSlaveRegister( ep, x"00",28, v.enable );
-    
+
     axiSlaveRegisterR( ep, x"0c", 0, modPrsL);
 
     axiSlaveDefault ( ep, v.axilWriteSlave, v.axilReadSlave );
@@ -208,6 +214,21 @@ begin
     end if;
   end process aseq;
 
+  GEN_DEBUG : if DEBUG_C generate
+    U_ILA : ila_0
+      port map ( clk       => tdetClk,
+                 probe0(0) => as.enable(0),
+                 probe0(1) => dmaIbSlaves(0).tReady,
+                 probe0(2) => r(0).axisSlave.tReady,
+                 probe0(3) => r(0).txMaster.tValid,
+                 probe0(4) => tdetAxisMaster(0).tValid,
+                 probe0(5) => tdetAxisMaster(0).tLast,
+                 probe0(6) => tdetAxisMaster(0).tDest(0),
+                 probe0(7) => r(0).event,
+                 probe0(71 downto 8) => r(0).txMaster.tData(63 downto 0),
+                 probe0(255 downto 72) => (others=>'0') );
+  end generate;
+  
   U_AFullS : entity surf.SynchronizerVector
     generic map ( WIDTH_G => NUM_LANES_G )
     port map ( clk => tdetClk, dataIn => dmaIbAlmostFull, dataOut => tdetAlmostFull );
@@ -216,6 +237,9 @@ begin
   U_LengthS : entity surf.SynchronizerVector
     generic map ( WIDTH_G => a.length'length )
     port map ( clk => tdetClk, dataIn => a.length, dataOut => as.length );
+  U_EnableS : entity surf.SynchronizerVector
+    generic map ( WIDTH_G => a.enable'length )
+    port map ( clk => tdetClk, dataIn => a.enable, dataOut => as.enable );
   
 --  comb : process ( r, tdetClkRst, tdetEventMaster, tdetTransMaster, strigBus, as, dmaIbSlaves ) is
   comb : process ( r, tdetClkRst, tdetAxisMaster, tdetTimingMsgs, as, dmaIbSlaves ) is
@@ -240,22 +264,16 @@ begin
         when WAIT_S =>
           v.state := IDLE_S;
         when IDLE_S =>
-          if as.enable(i) = '1' then
-            v.state           := HDR1_S;
-            ssiSetUserSof(PGP3_AXIS_CONFIG_C, v.txMaster, '1');
-            v.txMaster.tValid := '1';
-            v.txMaster.tLast  := '0';
+          if as.enable(i) = '1' and v.txMaster.tValid = '0' then
             if tdetAxisMaster(i).tValid = '1' then
-              v.event := not tdetAxisMaster(i).tDest(0);
+              v.state           := HDR1_S;
+              v.event           := not tdetAxisMaster(i).tDest(0);
+              ssiSetUserSof(PGP3_AXIS_CONFIG_C, v.txMaster, '1');
+              v.txMaster.tValid := '1';
+              v.txMaster.tLast  := '0';
+              v.txMaster.tKeep  := genTKeep(PGP3_AXIS_CONFIG_C);
               v.txMaster.tData(63 downto 0) := tdetAxisMaster(i).tData(63 downto 0);
-            --elsif tdetTransMaster(i).tValid = '1' then
-            --  v.event := '0';
-            --  v.txMaster.tData(63 downto 0) := tdetTransMaster(i).tData(63 downto 0);
-            else
-              v.txMaster.tValid := '0';
-              v.state           := IDLE_S;
             end if;
-            v.txMaster.tKeep  := genTKeep(PGP3_AXIS_CONFIG_C);
           end if;
         when HDR1_S =>
           if v.txMaster.tValid = '0' then
@@ -276,27 +294,26 @@ begin
           end if;
         when HDR3_S =>
           if v.txMaster.tValid = '0' then
+            v.axisSlave.tReady:= '1';
             v.txMaster.tValid := '1';
             v.txMaster.tData(63 downto 0) := toSlv(0,64);
             v.txMaster.tKeep  := genTKeep(PGP3_AXIS_CONFIG_C);
             if r(i).event = '1' then
               v.txMaster.tLast    := '0';
-              v.axisSlave.tReady  := '1';
               if as.length = 0 then
                 -- Workaround for small payload DMA problem;  pad to 256 bytes
                 v.length          := toSlv(2048,r(i).length'length);
                 -- v.length          := resize(strigBus(i).userlen,r(i).length'length);
                 v.user(TIMING_MESSAGE_BITS_NO_BSA_C-1 downto 0)
                   := toSlvNoBsa(tdetTimingMsgs(i));
-                v.userrd            := '1';
-                v.state             := USER_S;
+                v.userrd          := '1';  -- now signaled by v.axisSlave
+                v.state           := USER_S;
               else
-                v.length            := as.length;
-                v.state             := SEND_S;
+                v.length          := as.length;
+                v.state           := SEND_S;
               end if;
             else
               v.txMaster.tLast    := '1';
-              v.axisSlave.tReady  := '1';
               v.state             := WAIT_S;
             end if;
           end if;
