@@ -26,7 +26,7 @@ end DrpTDetSim;
 
 architecture top_level_app of DrpTDetSim is
 
-  signal axiClk, axiRst : sl;
+  signal axiClk, axiRst, axilRst : sl;
   signal axilWriteMaster     : AxiLiteWriteMasterType := AXI_LITE_WRITE_MASTER_INIT_C;
   signal axilWriteSlave      : AxiLiteWriteSlaveType;
   signal axilReadMaster      : AxiLiteReadMasterType := AXI_LITE_READ_MASTER_INIT_C;
@@ -281,8 +281,11 @@ begin
   process is
   begin
     axiRst <= '1';
+    axilRst <= '1';
     wait for 200 ns;
     axiRst <= '0';
+    wait for 200 ns;
+    axilRst <= '0';
     wait;
   end process;
 
@@ -308,7 +311,7 @@ begin
                             (addr => x"0000010C", value => x"00000000"),
                             (addr => x"00000100", value => x"00000003") ) )
     port map ( clk    => axiClk,
-               rst    => axiRst,
+               rst    => axilRst,
                master => axilWriteMaster,
                slave  => axilWriteSlave,
                done   => axilDone );

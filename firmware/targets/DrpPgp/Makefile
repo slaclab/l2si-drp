@@ -5,7 +5,8 @@ export OVERRIDE_SUBMODULE_LOCKS = 1
 #  PRJ_VERSION = 0x00000000 - original with XVC
 #  PRJ_VERSION = 0x00000001 - no XVC
 #  PRJ_VERSION = 0x00000002 - Updated event header
-export PRJ_VERSION = 0x00000002
+#  PRJ_VERSION = 0x00000003 - 8 PGP lanes, 10 DMA channels
+export PRJ_VERSION = 0x00000003
 
 # Define the Hardware Type in the axi-pcie-core
 export PCIE_HW_TYPE = XilinxKcu1500

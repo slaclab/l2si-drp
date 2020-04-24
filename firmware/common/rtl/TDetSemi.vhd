@@ -2,7 +2,7 @@
 -- File       : TDetSemi.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-02-11
+-- Last update: 2020-02-26
 -------------------------------------------------------------------------------
 -- Description: TDetSemi File
 -------------------------------------------------------------------------------
@@ -96,16 +96,16 @@ architecture mapping of TDetSemi is
   type AxiRegType is record
     enable    : slv(NUM_LANES_G-1 downto 0);
     aFull     : slv(NUM_LANES_G-1 downto 0);
-    clear     : sl;
-    length    : slv(22 downto 0);
+    clear     : slv(NUM_LANES_G-1 downto 0);
+    length    : Slv23Array(NUM_LANES_G-1 downto 0);
     axilWriteSlave  : AxiLiteWriteSlaveType;
     axilReadSlave   : AxiLiteReadSlaveType;
   end record;
   constant AXI_REG_INIT_C : AxiRegType := (
     enable    => (others=>'0'),
     aFull     => (others=>'0'),
-    clear     => '0',
-    length    => (others=>'0'),
+    clear     => (others=>'0'),
+    length    => (others=>(others=>'0')),
     axilWriteSlave => AXI_LITE_WRITE_SLAVE_INIT_C,
     axilReadSlave  => AXI_LITE_READ_SLAVE_INIT_C );
 
@@ -160,6 +160,45 @@ architecture mapping of TDetSemi is
            probe0  : in slv(255 downto 0) );
   end component;
 
+  --
+  --  Format the data for software (psana) consumption
+  --
+  function toSlvFormatted(msg : TimingMessageType) return slv is
+    variable v : slv(967 downto 0) := (others=>'0');
+    variable i : integer := 0;
+  begin
+    assignSlv(i, v, msg.pulseId);                             -- [63:0]
+    assignSlv(i, v, msg.timeStamp);                           -- [127:64]
+    for j in msg.fixedRates'range loop                        -- [207:128]
+      assignSlv(i, v, "0000000" & msg.fixedRates(j));
+    end loop;
+    for j in msg.acRates'range loop                           -- [255:208]
+      assignSlv(i, v, "0000000" & msg.acRates(j));
+    end loop;
+    assignSlv(i, v, resize(msg.acTimeSlot,8));                   -- [263:256]
+    assignSlv(i, v, resize(msg.acTimeSlotPhase,16));             -- [279:264]
+    assignSlv(i, v, "0000000" & msg.beamRequest(0));             -- [287:280]
+    assignSlv(i, v, resize(msg.beamRequest(7 downto 4),8));    -- [295:288]
+    assignSlv(i, v, msg.beamRequest(31 downto 16));           -- [311:296]
+    for j in msg.beamEnergy'range loop                        -- [375:312]
+      assignSlv(i, v, msg.beamEnergy(j));
+    end loop;
+    for j in msg.photonWavelen'range loop                     -- [407:376]
+      assignSlv(i, v, msg.photonWavelen(j));
+    end loop;
+    assignSlv(i, v, msg.control(16));                         -- [423:408]
+    for j in msg.mpsLimit'range loop
+      assignSlv(i, v, "0000000" & msg.mpsLimit(j));              -- [551:424]
+    end loop;
+    for j in msg.mpsClass'range loop                          -- [679:552]
+      assignSlv(i, v, resize(msg.mpsClass(j),8));
+    end loop;
+    for j in msg.control'range loop                           -- [967:680]
+      assignSlv(i, v, msg.control(j));
+    end loop;
+    return v;
+  end function;
+  
 begin
 
   dmaClks <= idmaClks;
@@ -189,11 +228,12 @@ begin
     v := a;
 
     axiSlaveWaitTxn ( ep, axilWriteMaster, axilReadMaster, v.axilWriteSlave, v.axilReadSlave );
-    axiSlaveRegister( ep, x"00", 3, v.clear  );
-    axiSlaveRegister( ep, x"00", 4, v.length );
-    axiSlaveRegister( ep, x"00",28, v.enable );
-
-    axiSlaveRegisterR( ep, x"0c", 0, modPrsL);
+    for i in 0 to NUM_LANES_G-1 loop
+      axiSlaveRegister( ep, toSlv(i*4,8), 0, v.length(i)  );
+      axiSlaveRegister( ep, toSlv(i*4,8),30, v.clear (i) );
+      axiSlaveRegister( ep, toSlv(i*4,8),31, v.enable(i) );
+    end loop;
+    axiSlaveRegisterR( ep, x"20", 0, modPrsL);
 
     axiSlaveDefault ( ep, v.axilWriteSlave, v.axilReadSlave );
 
@@ -232,11 +272,14 @@ begin
   U_AFullS : entity surf.SynchronizerVector
     generic map ( WIDTH_G => NUM_LANES_G )
     port map ( clk => tdetClk, dataIn => dmaIbAlmostFull, dataOut => tdetAlmostFull );
-  U_ClearS : entity surf.Synchronizer
+  U_ClearS : entity surf.SynchronizerVector
+    generic map ( WIDTH_G => NUM_LANES_G )
     port map ( clk => tdetClk, dataIn => a.clear, dataOut => as.clear );
-  U_LengthS : entity surf.SynchronizerVector
-    generic map ( WIDTH_G => a.length'length )
-    port map ( clk => tdetClk, dataIn => a.length, dataOut => as.length );
+  G_LengthS : for i in 0 to NUM_LANES_G-1 generate
+    U_LengthS : entity surf.SynchronizerVector
+      generic map ( WIDTH_G => a.length(i)'length )
+      port map ( clk => tdetClk, dataIn => a.length(i), dataOut => as.length(i) );
+  end generate;
   U_EnableS : entity surf.SynchronizerVector
     generic map ( WIDTH_G => a.enable'length )
     port map ( clk => tdetClk, dataIn => a.enable, dataOut => as.enable );
@@ -300,16 +343,16 @@ begin
             v.txMaster.tKeep  := genTKeep(PGP3_AXIS_CONFIG_C);
             if r(i).event = '1' then
               v.txMaster.tLast    := '0';
-              if as.length = 0 then
+              if as.length(i) = 0 then
                 -- Workaround for small payload DMA problem;  pad to 256 bytes
                 v.length          := toSlv(2048,r(i).length'length);
                 -- v.length          := resize(strigBus(i).userlen,r(i).length'length);
-                v.user(TIMING_MESSAGE_BITS_NO_BSA_C-1 downto 0)
-                  := toSlvNoBsa(tdetTimingMsgs(i));
+                v.user(toSlvFormatted(TIMING_MESSAGE_INIT_C)'range)
+                  := toSlvFormatted(tdetTimingMsgs(i));
                 v.userrd          := '1';  -- now signaled by v.axisSlave
                 v.state           := USER_S;
               else
-                v.length          := as.length;
+                v.length          := as.length(i);
                 v.state           := SEND_S;
               end if;
             else
@@ -324,7 +367,7 @@ begin
             end loop;
             v.txMaster.tValid := '1';
             v.txMaster.tLast  := '1';
-            v.length          := toSlv(0,as.length'length);
+            v.length          := toSlv(0,as.length(i)'length);
             j := conv_integer(r(i).length);
             if j <= PGP3_AXIS_CONFIG_C.TDATA_BYTES_C/4 then
               v.txMaster.tKeep  := genTKeep(4*j);
@@ -363,14 +406,14 @@ begin
 
       tdetAxisSlave (i)         <= v.axisSlave;
 
-      if tdetClkRst = '1' or as.clear = '1' then
+      if tdetClkRst = '1' or as.clear(i) = '1' then
         v := REG_INIT_C;
       end if;
 
       rin(i) <= v;
-
-      tdetAlmostFull <= as.aFull;
     end loop;
+
+    tdetAlmostFull <= as.aFull;
     
   end process;
 

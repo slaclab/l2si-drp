@@ -2,7 +2,7 @@
 -- File       : HardwareSemi.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2019-12-16
+-- Last update: 2020-02-20
 -------------------------------------------------------------------------------
 -- Description: HardwareSemi File
 -------------------------------------------------------------------------------
@@ -39,6 +39,7 @@ entity HardwareSemi is
    generic (
       TPD_G            : time             := 1 ns;
       REFCLK_SELECT_G  : string           := "156M";
+      NUM_VC_G         : integer          := 1;
       AXIL_CLK_FREQ_G  : real             := 125.0E6;
       AXI_ERROR_RESP_G : slv(1 downto 0)  := AXI_RESP_DECERR_C;
       AXI_BASE_ADDR_G  : slv(31 downto 0) := x"0000_0000" );
@@ -139,7 +140,7 @@ begin
          TPD_G            => TPD_G,
          REFCLK_WIDTH_G   => 1,
          REFCLK_SELECT_G  => REFCLK_SELECT_G,
-         NUM_VC_G         => 1,
+         NUM_VC_G         => NUM_VC_G,
          AXIL_CLK_FREQ_G  => AXIL_CLK_FREQ_G,
          AXI_BASE_ADDR_G  => AXI_BASE_ADDR_G )
       port map (

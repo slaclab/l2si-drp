@@ -2,7 +2,7 @@
 -- File       : PgpLane.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-02-09
+-- Last update: 2020-03-02
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ begin
 
    rxOpCodeEn  <= pgpRxOut.opCodeEn;
    rxOpCode    <= pgpRxOut.opCodeData( 7 downto 0);
-   rxLinkId    <= pgpRxOut.opCodeData(47 downto 16);
+   rxLinkId    <= (others=>'0');
    
    -----------
    -- PGP Core
@@ -182,22 +182,6 @@ begin
          pgpTxMasters => pgpTxMasters,
          pgpTxSlaves  => pgpTxSlaves);
 
-   -----------------------         
-   -- RX VC Blowoff Filter
-   -----------------------         
-   BLOWOFF_FILTER : process (pgpRxMasters, pgpRxOut, pgpRxVcBlowoff) is
-      variable tmp : AxiStreamMasterArray(NUM_VC_G-1 downto 0);
-      variable i   : natural;
-   begin
-      tmp := pgpRxMasters;
-      for i in NUM_VC_G-1 downto 0 loop
-         if (pgpRxVcBlowoff(i) = '1') or (pgpRxOut.linkReady = '0') then
-            tmp(i).tValid := '0';
-         end if;
-      end loop;
-      rxMasters <= tmp;
-   end process;
-
    --------------
    -- PGP RX Path
    --------------
@@ -221,6 +205,7 @@ begin
          -- PGP RX Interface (pgpRxClk domain)
          pgpClk       => pgpClk,
          pgpRst       => pgpRst,
+         rxLinkReady  => pgpRxOut.linkReady,
          pgpRxMasters => rxMasters,
          pgpRxCtrl    => pgpRxCtrl);
 

@@ -2,7 +2,7 @@
 -- File       : DrpTDet.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-24
--- Last update: 2020-02-08
+-- Last update: 2020-02-26
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -160,7 +160,7 @@ architecture top_level of DrpTDet is
    signal mAxil0WriteMasters : AxiLiteWriteMasterArray(NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_MASTER_INIT_C);
    signal mAxil0WriteSlaves  : AxiLiteWriteSlaveArray (NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_SLAVE_EMPTY_OK_C);
 
-   constant NUM_AXIL1_MASTERS_C : integer := 2;
+   constant NUM_AXIL1_MASTERS_C : integer := 3;
    signal mAxil1ReadMasters  : AxiLiteReadMasterArray (NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_MASTER_INIT_C);
    signal mAxil1ReadSlaves   : AxiLiteReadSlaveArray  (NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_SLAVE_EMPTY_OK_C);
    signal mAxil1WriteMasters : AxiLiteWriteMasterArray(NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_MASTER_INIT_C);
@@ -185,7 +185,13 @@ architecture top_level of DrpTDet is
            connectivity => x"FFFF"),
      1 => (baseAddr     => x"00A00000",
            addrBits     => 21,
+           connectivity => x"FFFF"),
+     2 => (baseAddr     => x"00C00000",
+           addrBits     => 21,
            connectivity => x"FFFF") );
+
+   constant AXILT_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(0 downto 0) := (
+     0 => AXIL0_CROSSBAR_MASTERS_CONFIG_C(TDETTIM_INDEX_C) );
 
    signal tdetAxilReadMasters  : AxiLiteReadMasterArray (1 downto 0);
    signal tdetAxilReadSlaves   : AxiLiteReadSlaveArray  (1 downto 0);
@@ -199,6 +205,17 @@ architecture top_level of DrpTDet is
    signal mtpAxilWriteMasters : AxiLiteWriteMasterArray(1 downto 0);
    signal mtpAxilWriteSlaves  : AxiLiteWriteSlaveArray (1 downto 0);
 
+   signal ttimAxilReadMasters  : AxiLiteReadMasterArray (1 downto 0);
+   signal ttimAxilReadSlaves   : AxiLiteReadSlaveArray  (1 downto 0);
+   signal ttimAxilWriteMasters : AxiLiteWriteMasterArray(1 downto 0);
+   signal ttimAxilWriteSlaves  : AxiLiteWriteSlaveArray (1 downto 0);
+
+   signal ttimAxilReadMaster  : AxiLiteReadMasterType;
+   signal ttimAxilReadSlave   : AxiLiteReadSlaveType;
+   signal ttimAxilWriteMaster : AxiLiteWriteMasterType;
+   signal ttimAxilWriteSlave  : AxiLiteWriteSlaveType;
+
+   
    signal migConfig : MigConfigArray(7 downto 0) := (others=>MIG_CONFIG_INIT_C);
    signal migStatus : MigStatusArray(7 downto 0);
    
@@ -320,6 +337,42 @@ begin
                   mAxiReadMasters     => mAxil1ReadMasters ,
                   mAxiReadSlaves      => mAxil1ReadSlaves  );
 
+  ttimAxilReadMasters (0) <= mAxil0ReadMasters (TDETTIM_INDEX_C);
+  ttimAxilWriteMasters(0) <= mAxil0WriteMasters(TDETTIM_INDEX_C);
+  mAxil0ReadSlaves (TDETTIM_INDEX_C) <= ttimAxilReadSlaves (0);
+  mAxil0WriteSlaves(TDETTIM_INDEX_C) <= ttimAxilWriteSlaves (0);
+
+  U_AxilAsync : entity surf.AxiLiteAsync
+    generic map ( TPD_G => TPD_G,
+                  NUM_ADDR_BITS_G => AXIL1_CROSSBAR_MASTERS_CONFIG_C(TDETTIM_INDEX_C).addrBits )
+    port map ( sAxiClk         => axilClks(1),
+               sAxiClkRst      => axilRsts(1),
+               sAxiReadMaster  => mAxil1ReadMasters (TDETTIM_INDEX_C),
+               sAxiReadSlave   => mAxil1ReadSlaves  (TDETTIM_INDEX_C),
+               sAxiWriteMaster => mAxil1WriteMasters(TDETTIM_INDEX_C),
+               sAxiWriteSlave  => mAxil1WriteSlaves (TDETTIM_INDEX_C),
+               mAxiClk         => axilClks(0),
+               mAxiClkRst      => axilRsts(0),
+               mAxiReadMaster  => ttimAxilReadMasters (1),
+               mAxiReadSlave   => ttimAxilReadSlaves  (1),
+               mAxiWriteMaster => ttimAxilWriteMasters(1),
+               mAxiWriteSlave  => ttimAxilWriteSlaves (1) );
+  
+  U_AxilXbarT : entity surf.AxiLiteCrossbar
+    generic map ( NUM_SLAVE_SLOTS_G  => 2,
+                  NUM_MASTER_SLOTS_G => 1,
+                  MASTERS_CONFIG_G   => AXILT_CROSSBAR_MASTERS_CONFIG_C )
+    port map    ( axiClk              => axilClks        (0),
+                  axiClkRst           => axilRsts        (0),
+                  sAxiWriteMasters    => ttimAxilWriteMasters,
+                  sAxiWriteSlaves     => ttimAxilWriteSlaves ,
+                  sAxiReadMasters     => ttimAxilReadMasters ,
+                  sAxiReadSlaves      => ttimAxilReadSlaves  ,
+                  mAxiWriteMasters(0) => ttimAxilWriteMaster,
+                  mAxiWriteSlaves (0) => ttimAxilWriteSlave ,
+                  mAxiReadMasters (0) => ttimAxilReadMaster ,
+                  mAxiReadSlaves  (0) => ttimAxilReadSlave  );
+
   tdetAxilReadMasters (0) <= mAxil0ReadMasters (TDETSEM_INDEX_C);
   tdetAxilWriteMasters(0) <= mAxil0WriteMasters(TDETSEM_INDEX_C);
   mAxil0ReadSlaves (TDETSEM_INDEX_C) <= tdetAxilReadSlaves (0);
@@ -358,10 +411,10 @@ begin
     port map ( -- AXI-Lite Interface
       axilClk          => axilClks(0),
       axilRst          => axilRsts(0),
-      axilReadMaster   => mAxil0ReadMasters (TDETTIM_INDEX_C),
-      axilReadSlave    => mAxil0ReadSlaves  (TDETTIM_INDEX_C),
-      axilWriteMaster  => mAxil0WriteMasters(TDETTIM_INDEX_C),
-      axilWriteSlave   => mAxil0WriteSlaves (TDETTIM_INDEX_C),
+      axilReadMaster   => ttimAxilReadMaster ,
+      axilReadSlave    => ttimAxilReadSlave  ,
+      axilWriteMaster  => ttimAxilWriteMaster,
+      axilWriteSlave   => ttimAxilWriteSlave ,
       -- Timing Interface
       tdetClk          => tdetClk   ,
       tdetAlmostFull   => tdetAlmostFull,

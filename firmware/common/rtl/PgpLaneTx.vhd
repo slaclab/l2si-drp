@@ -2,7 +2,7 @@
 -- File       : PgpLaneTx.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-02-09
+-- Last update: 2020-03-02
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -101,6 +101,7 @@ begin
          SLAVE_READY_EN_G    => false,
          VALID_THOLD_G       => 1,
          -- FIFO configurations
+         MEMORY_TYPE_G       => "block",
          GEN_SYNC_FIFO_G     => false,
          FIFO_ADDR_WIDTH_G   => 5,
          FIFO_PAUSE_THRESH_G => 20,
@@ -145,7 +146,7 @@ begin
          NUM_MASTERS_G => NUM_VC_G,
          MODE_G        => "INDEXED",
          PIPE_STAGES_G => 1,
-         TDEST_HIGH_G  => 3,
+         TDEST_HIGH_G  => bitSize(NUM_VC_G)-1,
          TDEST_LOW_G   => 0)
       port map (
          -- Clock and reset
