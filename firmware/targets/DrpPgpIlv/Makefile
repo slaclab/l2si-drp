@@ -6,8 +6,9 @@ export OVERRIDE_SUBMODULE_LOCKS = 1
 #  PRJ_VERSION = 0x00000001 - no XVC
 #  PRJ_VERSION = 0x00000004 - Use programmable clock for PGP reference at 185.7 MHz
 #  PRJ_VERSION = 0x00000005 - Rebuilt with l2si-core/lcls-timingcore refactor
+#  PRJ_VERSION = 0x00000006 - Test interrupt holdoff register
 
-export PRJ_VERSION = 0x00000005
+export PRJ_VERSION = 0x00000006
 
 # Define the Hardware Type in the axi-pcie-core
 export PCIE_HW_TYPE = XilinxKcu1500
