@@ -2,7 +2,7 @@
 -- File       : PgpLane.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-03-02
+-- Last update: 2020-06-14
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -88,7 +88,6 @@ architecture mapping of PgpLane is
    signal pgpTxMasters : AxiStreamMasterArray(NUM_VC_G-1 downto 0);
    signal pgpTxSlaves  : AxiStreamSlaveArray(NUM_VC_G-1 downto 0);
 
-   signal rxMasters    : AxiStreamMasterArray(NUM_VC_G-1 downto 0);
    signal pgpRxMasters : AxiStreamMasterArray(NUM_VC_G-1 downto 0);
    signal pgpRxCtrl    : AxiStreamCtrlArray(NUM_VC_G-1 downto 0);
 
@@ -206,7 +205,7 @@ begin
          pgpClk       => pgpClk,
          pgpRst       => pgpRst,
          rxLinkReady  => pgpRxOut.linkReady,
-         pgpRxMasters => rxMasters,
+         pgpRxMasters => pgpRxMasters,
          pgpRxCtrl    => pgpRxCtrl);
 
    pgpTxIn.opCodeNumber <= toSlv(6,3);
