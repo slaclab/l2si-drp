@@ -3,16 +3,8 @@ export OVERRIDE_SUBMODULE_LOCKS = 1
 
 # Define Firmware Version Number
 #  PRJ_VERSION = 0x00000000 - original with XVC
-#  PRJ_VERSION = 0x00000001 - no XVC
-#  PRJ_VERSION = 0x00000002 - upgrade to surf[master], axi-pcie-core[master]
-#  PRJ_VERSION = 0x00000003 - Upgrade l2si-core for XPM changes
-#  PRJ_VERSION = 0x00000004 - Rearrange event header
-#  PRJ_VERSION = 0x00000005 - Rebuild with EventHeaderCacheWrapper
-#  PRJ_VERSION = 0x00000006 - Put EventHeaderCache into full path, latch RTT
-#  PRJ_VERSION = 0x00000007 - Try axi-xbar-dev
-#  PRJ_VERSION = 0x00000008 - Upgrade l2si-core in attempt to fix off by one pulseid
-#  PRJ_VERSION = 0x00000009 - Fix ExtendedCore AxiLite access to TDetTiming.  Add holdoff register.
-export PRJ_VERSION = 0x00000009
+#  PRJ_VERSION = 0x00000001 - swap QSFP assignments
+export PRJ_VERSION = 0x00000001
 
 # Define the Hardware Type in the axi-pcie-core
 export PCIE_HW_TYPE = XilinxKcu1500
@@ -29,7 +21,7 @@ export NUM_MIG_CORES = 0
 
 # Select either GEN1 or GEN2 or GEN3 PCIe
 export PCIE_GEN_NUM = GEN3
-export EXTENDED_PCIE = 1
+export EXTENDED_PCIE = 0
 
 # BYPASS Partial Reconfiguration
 export BYPASS_RECONFIG = 1

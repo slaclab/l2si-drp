@@ -2,7 +2,7 @@
 -- File       : PgpLaneRx.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-02-28
+-- Last update: 2020-08-18
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ entity PgpLaneRx is
       dmaRst       : in  sl;
       dmaIbMaster  : out AxiStreamMasterType;
       dmaIbSlave   : in  AxiStreamSlaveType;
-      dmaIbFull    : in  sl;
+      dmaIbFull    : in  sl := '0';
       fifoThres    : in  slv(15 downto 0);
       fifoDepth    : out slv(15 downto 0);
       frameDrop    : out sl;

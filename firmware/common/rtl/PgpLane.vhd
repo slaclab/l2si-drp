@@ -2,7 +2,7 @@
 -- File       : PgpLane.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-06-14
+-- Last update: 2020-08-18
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -34,6 +34,7 @@ entity PgpLane is
    generic (
       TPD_G            : time             := 1 ns;
       LANE_G           : natural          := 0;
+      RATE_G           : string           := "10.3125Gbps";
       REFCLK_SELECT_G  : string           := "156M";
       NUM_VC_G         : positive         := 16;
       AXIL_CLK_FREQ_G  : real             := 125.0E+6;
@@ -116,6 +117,7 @@ begin
       generic map (
          TPD_G             => TPD_G,
 --         RATE_G            => ite(REFCLK_SELECT_G = "156M", "10.3125Gbps", "10.3Gbps"),
+         RATE_G            => RATE_G,
          NUM_VC_G          => NUM_VC_G,
          EN_PGP_MON_G      => true,
          AXIL_CLK_FREQ_G   => AXIL_CLK_FREQ_G,

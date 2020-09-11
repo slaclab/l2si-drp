@@ -1,3 +1,4 @@
+export OVERRIDE_SUBMODULE_LOCKS = 1
 export GIT_BYPASS = 1
 
 # Define Firmware Version Number

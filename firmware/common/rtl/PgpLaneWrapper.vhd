@@ -2,7 +2,7 @@
 -- File       : PgpLaneWrapper.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-02-09
+-- Last update: 2020-08-18
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -36,36 +36,38 @@ use unisim.vcomponents.all;
 entity PgpLaneWrapper is
    generic (
       TPD_G            : time             := 1 ns;
+      RATE_G           : string           := "10.3125Gbps";
       REFCLK_WIDTH_G   : positive         := 2;
       REFCLK_SELECT_G  : string           := "156M"; -- "156M" or "186M"
       NUM_VC_G         : positive         := 16;
+      NUM_LANES_G      : integer          := 4;
       AXIL_CLK_FREQ_G  : real             := 125.0E6;
       AXI_BASE_ADDR_G  : slv(31 downto 0) := (others => '0') );
    port (
       -- QSFP[0] Ports
       qsfp0RefClkP    : in  sl;
       qsfp0RefClkN    : in  sl;
-      qsfp0RxP        : in  slv(3 downto 0);
-      qsfp0RxN        : in  slv(3 downto 0);
-      qsfp0TxP        : out slv(3 downto 0);
-      qsfp0TxN        : out slv(3 downto 0);
+      qsfp0RxP        : in  slv(NUM_LANES_G-1 downto 0);
+      qsfp0RxN        : in  slv(NUM_LANES_G-1 downto 0);
+      qsfp0TxP        : out slv(NUM_LANES_G-1 downto 0);
+      qsfp0TxN        : out slv(NUM_LANES_G-1 downto 0);
       qsfp0RefClkMon  : out sl;
       -- DMA Interface (dmaClk domain)
-      dmaClks         : out slv                 (3 downto 0);
-      dmaRsts         : out slv                 (3 downto 0);
-      dmaObMasters    : in  AxiStreamMasterArray(3 downto 0);
-      dmaObSlaves     : out AxiStreamSlaveArray (3 downto 0);
-      dmaIbMasters    : out AxiStreamMasterArray(3 downto 0);
-      dmaIbSlaves     : in  AxiStreamSlaveArray (3 downto 0);
-      dmaIbFull       : in  slv                 (3 downto 0);
-      sAxisCtrl       : out AxiStreamCtrlArray  (3 downto 0);
+      dmaClks         : out slv                 (NUM_LANES_G-1 downto 0);
+      dmaRsts         : out slv                 (NUM_LANES_G-1 downto 0);
+      dmaObMasters    : in  AxiStreamMasterArray(NUM_LANES_G-1 downto 0);
+      dmaObSlaves     : out AxiStreamSlaveArray (NUM_LANES_G-1 downto 0);
+      dmaIbMasters    : out AxiStreamMasterArray(NUM_LANES_G-1 downto 0);
+      dmaIbSlaves     : in  AxiStreamSlaveArray (NUM_LANES_G-1 downto 0);
+      dmaIbFull       : in  slv                 (NUM_LANES_G-1 downto 0);
+      sAxisCtrl       : out AxiStreamCtrlArray  (NUM_LANES_G-1 downto 0);
        -- OOB Signals
-      txOpCodeEn      : in  slv                 (3 downto 0) := (others=>'0');
-      txOpCode        : in  Slv8Array           (3 downto 0) := (others=>X"00");
-      rxOpCodeEn      : out slv                 (3 downto 0);
-      rxOpCode        : out Slv8Array           (3 downto 0);
+      txOpCodeEn      : in  slv                 (NUM_LANES_G-1 downto 0) := (others=>'0');
+      txOpCode        : in  Slv8Array           (NUM_LANES_G-1 downto 0) := (others=>X"00");
+      rxOpCodeEn      : out slv                 (NUM_LANES_G-1 downto 0);
+      rxOpCode        : out Slv8Array           (NUM_LANES_G-1 downto 0);
       fifoThres       : in  slv                 (15 downto 0);
-      fifoDepth       : out Slv16Array          (3 downto 0);
+      fifoDepth       : out Slv16Array          (NUM_LANES_G-1 downto 0);
      -- AXI-Lite Interface (axilClk domain)
       axilClk         : in  sl;
       axilRst         : in  sl;
@@ -79,7 +81,7 @@ architecture mapping of PgpLaneWrapper is
 
    constant NUM_AXI_MASTERS_C : natural := 5;
 
-   constant AXI_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXI_MASTERS_C, AXI_BASE_ADDR_G, 21, 16);
+   constant AXI_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXI_MASTERS_C, AXI_BASE_ADDR_G, 20, 16);
 
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXI_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray (NUM_AXI_MASTERS_C-1 downto 0);
@@ -108,11 +110,11 @@ architecture mapping of PgpLaneWrapper is
    attribute dont_touch           : string;
    attribute dont_touch of refClk : signal is "TRUE";
 
-   signal idmaClks : slv(3 downto 0);
-   signal rxLinkId, txLinkId, rxLinkIdS : Slv32Array(3 downto 0);
+   signal idmaClks : slv(NUM_LANES_G-1 downto 0);
+   signal rxLinkId, txLinkId, rxLinkIdS : Slv32Array(NUM_LANES_G-1 downto 0);
    
    type RegType is record
-     txLinkId       : Slv32Array(3 downto 0);
+     txLinkId       : Slv32Array(NUM_LANES_G-1 downto 0);
      qpllReset      : sl;
      txReset        : sl;
      rxReset        : sl;
@@ -205,7 +207,7 @@ begin
    --------------------------------
    -- Mapping QSFP[1:0] to PGP[7:0]
    --------------------------------
-   MAP_QSFP : for i in 3 downto 0 generate
+   MAP_QSFP : for i in NUM_LANES_G-1 downto 0 generate
       -- QSFP[0] to PGP[3:0]
       pgpRxP(i+0) <= qsfp0RxP(i);
       pgpRxN(i+0) <= qsfp0RxN(i);
@@ -237,7 +239,7 @@ begin
    ------------
    -- PGP Lanes
    ------------
-   GEN_LANE : for i in 0 to 3 generate
+   GEN_LANE : for i in 0 to NUM_LANES_G-1 generate
 
       qpllRst(i) <= (r.qpllReset or qpllRstF(i)(1)) & (r.qpllReset or qpllRstF(i)(0));
 
@@ -321,7 +323,7 @@ begin
 
      axiSlaveWaitTxn(ep, axilWriteMasters(4), axilReadMasters(4), v.axilWriteSlave, v.axilReadSlave);
 
-     for i in 0 to 3 loop
+     for i in 0 to NUM_LANES_G-1 loop
        axiSlaveRegisterR(ep, toSlv(0 +i*4,8), 0, rxLinkIdS(i) );
        axiSlaveRegister (ep, toSlv(16+i*4,8), 0, v.txLinkId(i) );
      end loop;

@@ -61,7 +61,7 @@ architecture top_level_app of DrpTDetSim is
 
   signal xpmStatus   : XpmMiniStatusType;
   signal xpmConfig   : XpmMiniConfigType := XPM_MINI_CONFIG_INIT_C;
-  signal xpmStream   : XpmMiniStreamType := XPM_MINI_STREAM_INIT_C;
+  signal xpmStream   : XpmStreamType := XPM_STREAM_INIT_C;
 
   signal dsTx        : TimingPhyType := TIMING_PHY_INIT_C;
   signal fbTx        : TimingPhyType := TIMING_PHY_INIT_C;
@@ -86,174 +86,80 @@ architecture top_level_app of DrpTDetSim is
      TUSER_BITS_C  => 2,
      TUSER_MODE_C  => TUSER_NORMAL_C );
    
+  signal appLaneWriteMaster     : AxiLiteWriteMasterType := AXI_LITE_WRITE_MASTER_INIT_C;
+  signal appLaneWriteSlave      : AxiLiteWriteSlaveType;
+  signal appLaneReadMaster      : AxiLiteReadMasterType := AXI_LITE_READ_MASTER_INIT_C;
+  signal appLaneReadSlave       : AxiLiteReadSlaveType := AXI_LITE_READ_SLAVE_INIT_C;
+
+  signal appLaneIbSlave         : AxiStreamSlaveType := AXI_STREAM_SLAVE_INIT_C;
+  signal appLaneObMasters       : AxiStreamQuadMasterType := (others=>AXI_STREAM_MASTER_INIT_C);
+
+  --
   
+   constant MIGTPCI_INDEX_C   : integer := 0;
+   constant TDETSEM_INDEX_C   : integer := 1;
+   constant TDETTIM_INDEX_C   : integer := 2;
+   constant I2C_INDEX_C       : integer := 3;
+
+   constant NUM_AXIL0_MASTERS_C : integer := 4;
+   signal mAxil0ReadMasters  : AxiLiteReadMasterArray (NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_MASTER_INIT_C);
+   signal mAxil0ReadSlaves   : AxiLiteReadSlaveArray  (NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_SLAVE_EMPTY_OK_C);
+   signal mAxil0WriteMasters : AxiLiteWriteMasterArray(NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_MASTER_INIT_C);
+   signal mAxil0WriteSlaves  : AxiLiteWriteSlaveArray (NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_SLAVE_EMPTY_OK_C);
+
+   constant NUM_AXIL1_MASTERS_C : integer := 3;
+   signal mAxil1ReadMasters  : AxiLiteReadMasterArray (NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_MASTER_INIT_C);
+   signal mAxil1ReadSlaves   : AxiLiteReadSlaveArray  (NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_SLAVE_EMPTY_OK_C);
+   signal mAxil1WriteMasters : AxiLiteWriteMasterArray(NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_MASTER_INIT_C);
+   signal mAxil1WriteSlaves  : AxiLiteWriteSlaveArray (NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_SLAVE_EMPTY_OK_C);
+   
+   constant AXIL0_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL0_MASTERS_C-1 downto 0) := (
+     0 => (baseAddr     => x"00800000",
+           addrBits     => 21,
+           connectivity => x"FFFF"),
+     1 => (baseAddr     => x"00A00000",
+           addrBits     => 21,
+           connectivity => x"FFFF"),
+     2 => (baseAddr     => x"00C00000",
+           addrBits     => 21,
+           connectivity => x"FFFF"),
+     3 => (baseAddr     => x"00E00000",
+           addrBits     => 21,
+           connectivity => x"FFFF") );
+   constant AXIL1_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL1_MASTERS_C-1 downto 0) := (
+     0 => (baseAddr     => x"00800000",
+           addrBits     => 21,
+           connectivity => x"FFFF"),
+     1 => (baseAddr     => x"00A00000",
+           addrBits     => 21,
+           connectivity => x"FFFF"),
+     2 => (baseAddr     => x"00C00000",
+           addrBits     => 21,
+           connectivity => x"FFFF") );
+
+   constant AXILT_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(0 downto 0) := (
+     0 => AXIL0_CROSSBAR_MASTERS_CONFIG_C(TDETTIM_INDEX_C) );
+
+   signal axilRegs : Slv32Array(3 downto 0);
+   signal axilClks : slv(1 downto 0);
+   signal axilRsts : slv(1 downto 0);
+   signal axilReadMasters  : AxiLiteReadMasterArray (1 downto 0);
+   signal axilReadSlaves   : AxiLiteReadSlaveArray  (1 downto 0);
+   signal axilWriteMasters : AxiLiteWriteMasterArray(1 downto 0);
+   signal axilWriteSlaves  : AxiLiteWriteSlaveArray (1 downto 0);
+
+   signal ttimAxilReadMasters  : AxiLiteReadMasterArray (1 downto 0);
+   signal ttimAxilReadSlaves   : AxiLiteReadSlaveArray  (1 downto 0);
+   signal ttimAxilWriteMasters : AxiLiteWriteMasterArray(1 downto 0);
+   signal ttimAxilWriteSlaves  : AxiLiteWriteSlaveArray (1 downto 0);
+
+   signal ttimAxilReadMaster  : AxiLiteReadMasterType;
+   signal ttimAxilReadSlave   : AxiLiteReadSlaveType;
+   signal ttimAxilWriteMaster : AxiLiteWriteMasterType;
+   signal ttimAxilWriteSlave  : AxiLiteWriteSlaveType;
+
 begin
 
-  gtRxStatus.resetDone <= '1';
-
-  tpgConfig.pulseIdWrEn <= '0';
-  
-  process is
-  begin
-    xpmConfig.partition.l0Select.reset   <= '1';
-    wait for 1 us;
-    xpmConfig.partition.l0Select.reset   <= '0';
-    xpmConfig.partition.pipeline.depth_clks <= toSlv(0,16);
-    xpmConfig.partition.pipeline.depth_fids <= toSlv(90,8);
-    for i in xpmConfig.dsLink'range loop
-      xpmConfig.dsLink(i).txReset <= '1';
-    end loop;
-    wait for 1 us;
-    for i in xpmConfig.dsLink'range loop
-      xpmConfig.dsLink(i).txReset <= '0';
-    end loop;
-    wait for 10 us;
-    xpmConfig.partition.l0Select.enabled <= '1';
-    xpmConfig.partition.l0Select.rateSel <= x"0000"; -- 1MHz
-    xpmConfig.partition.l0Select.destSel <= x"8000"; -- DontCare
-    for i in 0 to 7 loop
-      wait for 20 us;
-      xpmConfig.partition.message.header <= toSlv(i,8);
-      wait until axiClk = '0';
-      xpmConfig.partition.message.insert <= '1';
-      wait until axiClk = '1';
-      wait until axiClk = '0';
-      xpmConfig.partition.message.insert <= '0';
-    end loop;
-    wait;
-  end process;
-  
-  U_TPG : entity lcls_timing_core.TPGMini
-    generic map (
-      NARRAYSBSA     => 1,
-      STREAM_INTF    => true )
-    port map (
-      -- Register Interface
-      statusO        => tpgStatus,
-      configI        => tpgConfig,
-      -- TPG Interface
-      txClk          => timingClk,
-      txRst          => timingRst,
-      txRdy          => '1',
-      streams    (0) => tpgStream,
-      advance    (0) => tpgAdvance,
-      fiducial       => tpgFiducial );
-
-  xpmStream.fiducial   <= tpgFiducial;
-  xpmStream.advance(0) <= tpgAdvance;
-  xpmStream.streams(0) <= tpgStream;
-
-  tpgAdvance <= tpgStream.ready;
-  --process (timingClk)
-  --begin
-  --  if rising_edge(timingClk) then
-  --    tpgAdvance <= tpgStream.ready;
-  --  end if;
-  --end process;
-  
-  U_Xpm : entity l2si_core.XpmMini
-    port map ( regclk       => axiClk,
-               regrst       => axiRst,
-               update       => '0',
-               config       => xpmConfig,
-               status       => xpmStatus,
-               dsRxClk  (0) => timingClk,
-               dsRxRst  (0) => timingRst,
-               dsRx     (0) => TIMING_RX_INIT_C,
-               dsTx     (0) => dsTx,
-               timingClk    => timingClk,
-               timingRst    => timingRst,
-               timingStream => xpmStream );
-
-   TimingCore_1 : entity lcls_timing_core.TimingCore
-     generic map ( CLKSEL_MODE_G     => "LCLSII",
-                   USE_TPGMINI_G     => false,
-                   ASYNC_G           => true )
-     port map (
-         gtTxUsrClk      => timingClk,
-         gtTxUsrRst      => timingRst,
-         gtRxRecClk      => timingClk,
-         gtRxData        => dsTx.data,
-         gtRxDataK       => dsTx.dataK,
-         gtRxDispErr     => "00",
-         gtRxDecErr      => "00",
-         gtRxControl     => open,
-         gtRxStatus      => gtRxStatus,
-         gtLoopback      => open,
-         appTimingClk    => timingClk,
-         appTimingRst    => timingRst,
-         appTimingBus    => timingBus,
-         tpgMiniTimingPhy=> open, -- TPGMINI
-         axilClk         => axiClk,
-         axilRst         => axiRst,
-         axilReadMaster  => AXI_LITE_READ_MASTER_INIT_C,
-         axilReadSlave   => open,
-         axilWriteMaster => AXI_LITE_WRITE_MASTER_INIT_C,
-         axilWriteSlave  => open );
-
-   U_TEM : entity l2si_core.TriggerEventManager
-      generic map (
-        NUM_DETECTORS_G                => NDET_C,
-        AXIL_BASE_ADDR_G               => x"00000000",
-        EVENT_AXIS_CONFIG_G            => TDET_AXIS_CONFIG_C,
-        TRIGGER_CLK_IS_TIMING_RX_CLK_G => true )
-      port map (
-         timingRxClk      => timingClk,
-         timingRxRst      => timingRst,
-         timingBus        => timingBus,
-         timingTxClk      => timingClk,
-         timingTxRst      => timingRst,
-         timingTxPhy      => fbTx,
-         triggerClk       => timingClk,
-         triggerRst       => timingRst,
-         triggerData      => timingTrig,
-         eventClk         => tdetClk,
-         eventRst         => tdetRst,
-         eventTimingMessages => tdetTimingMsgs,
-         eventAxisMasters => tdetAxisM,
-         eventAxisSlaves  => tdetAxisS,
-         eventAxisCtrl    => (others => AXI_STREAM_CTRL_UNUSED_C),
-         axilClk          => axiClk,
-         axilRst          => axiRst,
-         axilReadMaster   => axilReadMaster,
-         axilReadSlave    => axilReadSlave,
-         axilWriteMaster  => axilWriteMaster,
-         axilWriteSlave   => axilWriteSlave );
-
-     -- tdetStatus
-     -- tdetTiming
-    U_Hw : entity work.TDetSemi
-      port map (
-        ------------------------      
-        --  Top Level Interfaces
-        ------------------------         
-        -- AXI-Lite Interface (axilClk domain)
-        axilClk         => axiClk,
-        axilRst         => axiRst,
-        axilReadMaster  => tdetAxilReadMaster,
-        axilReadSlave   => tdetAxilReadSlave ,
-        axilWriteMaster => tdetAxilWriteMaster,
-        axilWriteSlave  => tdetAxilWriteSlave ,
-        -- DMA Interface (dmaClk domain)
-        dmaClks         => hwClks        ,
-        dmaRsts         => hwRsts        ,
-        dmaObMasters    => hwObMasters   ,
-        dmaObSlaves     => hwObSlaves    ,
-        dmaIbMasters    => hwIbMasters   ,
-        dmaIbSlaves     => hwIbSlaves    ,
-        dmaIbAlmostFull => hwIbAlmostFull,
-        dmaIbFull       => hwIbFull      ,
-        ------------------
-        --  TDET Ports
-        ------------------       
-        tdetClk         => tdetClk,
-        tdetClkRst      => tdetRst,
-        tdetAlmostFull  => tdetAlmostFull,
-        tdetTimingMsgs  => tdetTimingMsgs,
-        tdetAxisMaster  => tdetAxisM,
-        tdetAxisSlave   => tdetAxisS,
-        modPrsL         => '0' );
-  
   process is
   begin
     timingClk <= '1';
@@ -304,31 +210,101 @@ begin
   tdetRst <= axisRst;
   timingRst <= axisRst;
 
-  U_AxiLite : entity work.AxiLiteWriteMasterSim
-    generic map ( CMDS => ( (addr => x"00000020", value => x"0a0b0c0d"),
-                            (addr => x"00000104", value => x"00000000"),
-                            (addr => x"00000108", value => x"00000010"),
-                            (addr => x"0000010C", value => x"00000000"),
-                            (addr => x"00000100", value => x"00000003") ) )
-    port map ( clk    => axiClk,
-               rst    => axilRst,
-               master => axilWriteMaster,
-               slave  => axilWriteSlave,
-               done   => axilDone );
-
-  U_AxiLiteTDet : entity work.AxiLiteWriteMasterSim
-    generic map ( CMDS => ( (addr => x"00000000", value => x"00000008"),
-                            (addr => x"00000000", value => x"10000000") ) )
-    port map ( clk    => axiClk,
-               rst    => axiRst,
-               master => tdetAxilWriteMaster,
-               slave  => tdetAxilWriteSlave,
-               done   => open );
-
-  U_Record : entity work.AxiStreamRecord
-    generic map ( filename => "tdet.xtc" )
-    port map ( axisClk    => hwClks     (0),
-               axisMaster => hwIbMasters(0),
-               axisSlave  => hwIbSlaves (0) );
+  axilClks(0) <= axiClk;
+  axilRsts(0) <= axiRst;
+  axilClks(1) <= not axiClk;
+  axilRsts(1) <= axiRst;
+    
+  GEN_MASTER : for i in 0 to 1 generate
+    U_AxiLiteTDet : entity work.AxiLiteWriteMasterSim
+      generic map ( CMDS => ( (addr => x"00C00000", value => x"00000008"),
+                              (addr => x"00C00004", value => x"10000000") ) )
+      port map ( clk    => axilClks(i),
+                 rst    => axilRsts(i),
+                 master => axilWriteMasters(i),
+                 slave  => axilWriteSlaves (i),
+                 done   => open );
+  end generate;
   
+  U_AxilXbar0 : entity surf.AxiLiteCrossbar
+    generic map ( NUM_SLAVE_SLOTS_G  => 1,
+                  NUM_MASTER_SLOTS_G => AXIL0_CROSSBAR_MASTERS_CONFIG_C'length,
+                  MASTERS_CONFIG_G   => AXIL0_CROSSBAR_MASTERS_CONFIG_C )
+    port map    ( axiClk              => axilClks        (0),
+                  axiClkRst           => axilRsts        (0),
+                  sAxiWriteMasters(0) => axilWriteMasters(0),
+                  sAxiWriteSlaves (0) => axilWriteSlaves (0),
+                  sAxiReadMasters (0) => axilReadMasters (0),
+                  sAxiReadSlaves  (0) => axilReadSlaves  (0),
+                  mAxiWriteMasters    => mAxil0WriteMasters,
+                  mAxiWriteSlaves     => mAxil0WriteSlaves ,
+                  mAxiReadMasters     => mAxil0ReadMasters ,
+                  mAxiReadSlaves      => mAxil0ReadSlaves  );
+
+  U_AxilXbar1 : entity surf.AxiLiteCrossbar
+    generic map ( NUM_SLAVE_SLOTS_G  => 1,
+                  NUM_MASTER_SLOTS_G => AXIL1_CROSSBAR_MASTERS_CONFIG_C'length,
+                  MASTERS_CONFIG_G   => AXIL1_CROSSBAR_MASTERS_CONFIG_C )
+    port map    ( axiClk              => axilClks        (1),
+                  axiClkRst           => axilRsts        (1),
+                  sAxiWriteMasters(0) => axilWriteMasters(1),
+                  sAxiWriteSlaves (0) => axilWriteSlaves (1),
+                  sAxiReadMasters (0) => axilReadMasters (1),
+                  sAxiReadSlaves  (0) => axilReadSlaves  (1),
+                  mAxiWriteMasters    => mAxil1WriteMasters,
+                  mAxiWriteSlaves     => mAxil1WriteSlaves ,
+                  mAxiReadMasters     => mAxil1ReadMasters ,
+                  mAxiReadSlaves      => mAxil1ReadSlaves  );
+
+  ttimAxilReadMasters (0) <= mAxil0ReadMasters (TDETTIM_INDEX_C);
+  ttimAxilWriteMasters(0) <= mAxil0WriteMasters(TDETTIM_INDEX_C);
+  mAxil0ReadSlaves (TDETTIM_INDEX_C) <= ttimAxilReadSlaves (0);
+  mAxil0WriteSlaves(TDETTIM_INDEX_C) <= ttimAxilWriteSlaves (0);
+
+  U_AxilAsync : entity surf.AxiLiteAsync
+    generic map ( TPD_G => 1 ns )
+    port map ( sAxiClk         => axilClks(1),
+               sAxiClkRst      => axilRsts(1),
+               sAxiReadMaster  => mAxil1ReadMasters (TDETTIM_INDEX_C),
+               sAxiReadSlave   => mAxil1ReadSlaves  (TDETTIM_INDEX_C),
+               sAxiWriteMaster => mAxil1WriteMasters(TDETTIM_INDEX_C),
+               sAxiWriteSlave  => mAxil1WriteSlaves (TDETTIM_INDEX_C),
+               mAxiClk         => axilClks(0),
+               mAxiClkRst      => axilRsts(0),
+               mAxiReadMaster  => ttimAxilReadMasters (1),
+               mAxiReadSlave   => ttimAxilReadSlaves  (1),
+               mAxiWriteMaster => ttimAxilWriteMasters(1),
+               mAxiWriteSlave  => ttimAxilWriteSlaves (1) );
+  
+  U_AxilXbarT : entity surf.AxiLiteCrossbar
+    generic map ( NUM_SLAVE_SLOTS_G  => 2,
+                  NUM_MASTER_SLOTS_G => 1,
+                  MASTERS_CONFIG_G   => AXILT_CROSSBAR_MASTERS_CONFIG_C )
+    port map    ( axiClk              => axilClks        (0),
+                  axiClkRst           => axilRsts        (0),
+                  sAxiWriteMasters    => ttimAxilWriteMasters,
+                  sAxiWriteSlaves     => ttimAxilWriteSlaves ,
+                  sAxiReadMasters     => ttimAxilReadMasters ,
+                  sAxiReadSlaves      => ttimAxilReadSlaves  ,
+                  mAxiWriteMasters(0) => ttimAxilWriteMaster,
+                  mAxiWriteSlaves (0) => ttimAxilWriteSlave ,
+                  mAxiReadMasters (0) => ttimAxilReadMaster ,
+                  mAxiReadSlaves  (0) => ttimAxilReadSlave  );
+
+  U_TTim : entity surf.AxiLiteRegs
+   generic map (
+      NUM_WRITE_REG_G  => 4,
+      NUM_READ_REG_G   => 4 )
+   port map (
+      -- AXI-Lite Bus
+      axiClk         => axilClks(0),
+      axiClkRst      => axilRsts(0),
+      axiReadMaster  => ttimAxilReadMaster,
+      axiReadSlave   => ttimAxilReadSlave,
+      axiWriteMaster => ttimAxilWriteMaster,
+      axiWriteSlave  => ttimAxilWriteSlave,
+      writeRegister  => axilRegs,
+      readRegister   => axilRegs
+      );
+
 end architecture;
