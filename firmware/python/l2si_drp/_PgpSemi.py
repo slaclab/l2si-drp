@@ -11,6 +11,7 @@
 import pyrogue as pr
 
 import surf.protocols.batcher as batcher
+import surf.protocols.pgp     as pgp
 
 class PgpLaneWrapper(pr.Device):
     def __init__(self,
@@ -25,8 +26,8 @@ class PgpLaneWrapper(pr.Device):
         )
 
         for i in range(numLanes):
-            self.add(PgpLane(
-                name    = 'PgpLane%d'%i,
+            self.add(pgp.Pgp3AxiL(
+                name    = 'Pgp3AxiL_%d'%i,
                 offset  = 0x10000*i,
             ))
 
@@ -98,6 +99,6 @@ class PgpSemi(pr.Device):
         for i in range(numLanes):
             self.add(batcher.AxiStreamBatcherEventBuilder(
                 name      = 'AxiStreamBatcherEB_%d'%i,
-                offset    = 0x100000 + 0x10000*i,
+                offset    = 0x80000 + 0x10000*i,
             ))
 

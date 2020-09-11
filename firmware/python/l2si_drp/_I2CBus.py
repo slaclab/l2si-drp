@@ -113,7 +113,8 @@ class QSFPMonitor(pr.Device):
                 
         return (pwr(0),pwr(1),pwr(2),pwr(3))
 
-class I2cBus(pr.Device):
+
+class I2CBus(pr.Device):
     def __init__(self,
                  name        = 'I2cBus',
                  description = 'Local bus',
@@ -131,6 +132,7 @@ class I2cBus(pr.Device):
             verify    = False,
             mode      = 'RW',
             enum = {
+                0x00: 'None',
                 0x02: 'QSFP1',
                 0x04: 'SI570',
                 0x08: 'Fan',

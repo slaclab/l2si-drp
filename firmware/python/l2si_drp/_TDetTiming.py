@@ -10,7 +10,7 @@
 #-----------------------------------------------------------------------------
 import pyrogue as pr
 
-import lcls_timing_core
+import LclsTimingCore
 import l2si_core
 
 class TDetTiming(pr.Device):
@@ -25,15 +25,15 @@ class TDetTiming(pr.Device):
             **kwargs
         )
 
-        self.add(lcls_timing_core.TimingCore(
-            name      = 'TimingCore',
+        self.add(LclsTimingCore.TimingFrameRx(
+            name      = 'TimingFrameRx',
             offset    = 0x00000,
         ))
 
-        self.add(lcls_timing_core.TimingGtCoreWrapper(
-            name      = 'TimingGtCoreWrapper',
-            offset    = 0x10000,
-        ))
+#        self.add(LclsTimingCore.TimingGtCoreWrapper(
+#            name      = 'TimingGtCoreWrapper',
+#            offset    = 0x10000,
+#        ))
 
         self.add(l2si_core.TriggerEventManager(
             name      = 'TriggerEventManager',

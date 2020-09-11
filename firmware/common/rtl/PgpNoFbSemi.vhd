@@ -2,7 +2,7 @@
 -- File       : HardwareSemi.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-09-08
+-- Last update: 2020-09-11
 -------------------------------------------------------------------------------
 -- Description: HardwareSemi File
 -------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ architecture mapping of PgpNoFbSemi is
    signal idmaRsts         : slv                 (NUM_LANES_C-1 downto 0);
 
    constant NUM_AXI_MASTERS_C : integer := 2;
-   constant AXI_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXI_MASTERS_C, AXI_BASE_ADDR_G, 21, 20);
+   constant AXI_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := genAxiLiteConfig(NUM_AXI_MASTERS_C, AXI_BASE_ADDR_G, 20, 19);
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXI_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray (NUM_AXI_MASTERS_C-1 downto 0);
    signal axilReadMasters  : AxiLiteReadMasterArray (NUM_AXI_MASTERS_C-1 downto 0);

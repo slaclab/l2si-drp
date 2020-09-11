@@ -31,9 +31,8 @@ class DevRoot(l2si_drp.Root):
                  pgp3        = True,            # true = PGPv3, false = PGP2b
                  pollEn      = True,            # Enable automatic polling registers
                  initRead    = True,            # Read all registers at start of the system
-                 numLanes    = 1,               # Number of PGP lanes
                  defaultFile = None,
-                 devTarget   = None,
+                 hwType      = None,
                  **kwargs):
 
         # Set the min. firmware Versions
@@ -46,13 +45,23 @@ class DevRoot(l2si_drp.Root):
 
         kwargs['timeout'] = 5000000 # 5 s
 
+        devTarget      = None
+        numPgpLanes    = 0
+        numTimingLanes = 0
+        if hwType == 'DrpPgpTDet':
+            devTarget      = l2si_drp.DrpPgpTDet
+            numPgpLanes    = 1
+            numTimingLanes = 1
+
+        numDmaLanes = numPgpLanes + numTimingLanes
+
         # Pass custom value to parent via super function
         super().__init__(
             dev         = dev,
             pgp3        = pgp3,
             pollEn      = pollEn,
             initRead    = initRead,
-            numLanes    = numLanes,
+            numLanes    = numDmaLanes,
             **kwargs)
 
         # Create memory interface
@@ -60,25 +69,26 @@ class DevRoot(l2si_drp.Root):
 
         # Instantiate the top level Device and pass it the memory map
         self.add(devTarget(
-            name     = 'PgpPcie',
-            memBase  = self.memMap,
-            numLanes = numLanes,
-            pgp3     = pgp3,
-            expand   = True,
+            name           = 'PgpPcie',
+            memBase        = self.memMap,
+            numPgpLanes    = numPgpLanes,
+            numTimingLanes = numTimingLanes,
+            pgp3           = pgp3,
+            expand         = True,
         ))
 
         # Create DMA streams
         vcs = [0,1,2] if dataDebug else [0,2]
-        self.dmaStreams = axipcie.createAxiPcieDmaStreams(dev, {lane:{dest for dest in vcs} for lane in range(numLanes)}, 'localhost', 8000)
+        self.dmaStreams = axipcie.createAxiPcieDmaStreams(dev, {lane:{dest for dest in vcs} for lane in range(numDmaLanes)}, 'localhost', 8000)
 
         # Check if not doing simulation
         if (dev!='sim'):
 
             # Create arrays to be filled
-            self._srp = [None for lane in range(numLanes)]
+            self._srp = [None for lane in range(numPgpLanes)]
 
             # Create the stream interface
-            for lane in range(numLanes):
+            for lane in range(numPgpLanes):
 
                 # SRP
                 self._srp[lane] = rogue.protocols.srp.SrpV3()
@@ -95,41 +105,12 @@ class DevRoot(l2si_drp.Root):
                     expand     = True,
                 ))
 
-        # Else doing Rogue VCS simulation
-        else:
-            self.roguePgp = shared.RogueStreams(numLanes=numLanes, pgp3=pgp3)
-
-            # Create arrays to be filled
-            self._frameGen = [None for lane in range(numLanes)]
-
-            # Create the stream interface
-            for lane in range(numLanes):
-
-                # Create the frame generator
-                self._frameGen[lane] = MyCustomMaster()
-
-                # Connect the frame generator
-                print(self.roguePgp.pgpStreams)
-                self._frameGen[lane] >> self.roguePgp.pgpStreams[lane][1]
-
-                # Create a command to execute the frame generator
-                self.add(pr.BaseCommand(
-                    name         = f'GenFrame[{lane}]',
-                    function     = lambda cmd, lane=lane: self._frameGen[lane].myFrameGen(),
-                ))
-
-                # Create a command to execute the frame generator. Accepts user data argument
-                self.add(pr.BaseCommand(
-                    name         = f'GenUserFrame[{lane}]',
-                    function     = lambda cmd, lane=lane: self._frameGen[lane].myFrameGen,
-                ))
-
         # Create arrays to be filled
-        self._dbg = [None for lane in range(numLanes)]
-        self.unbatchers = [rogue.protocols.batcher.SplitterV1() for lane in range(numLanes)]
+        self._dbg = [None for lane in range(numPgpLanes)]
+        self.unbatchers = [rogue.protocols.batcher.SplitterV1() for lane in range(numPgpLanes)]
 
         # Create the stream interface
-        for lane in range(numLanes):
+        for lane in range(numPgpLanes):
             # Debug slave
             if dataDebug:
                 # Connect the streams
