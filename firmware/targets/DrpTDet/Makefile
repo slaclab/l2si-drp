@@ -12,7 +12,8 @@ export OVERRIDE_SUBMODULE_LOCKS = 1
 #  PRJ_VERSION = 0x00000007 - Try axi-xbar-dev
 #  PRJ_VERSION = 0x00000008 - Upgrade l2si-core in attempt to fix off by one pulseid
 #  PRJ_VERSION = 0x00000009 - Fix ExtendedCore AxiLite access to TDetTiming.  Add holdoff register.
-export PRJ_VERSION = 0x00000009
+#  PRJ_VERSION = 0x0305000a - Upgrade for timing core modesel/clksel options
+export PRJ_VERSION = 0x0305000a
 
 # Define the Hardware Type in the axi-pcie-core
 export PCIE_HW_TYPE = XilinxKcu1500

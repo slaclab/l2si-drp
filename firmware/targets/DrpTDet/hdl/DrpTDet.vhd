@@ -2,7 +2,7 @@
 -- File       : DrpTDet.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-24
--- Last update: 2020-06-11
+-- Last update: 2021-08-13
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -281,6 +281,8 @@ begin
   i2c_rst_l      <= '1';
   qsfpModPrsL(0) <= qsfp0ModPrsL;
   qsfpModPrsL(1) <= qsfp1ModPrsL;
+  qsfp0ModSelL   <= '0';  -- enable I2C
+  qsfp1ModSelL   <= '0';  -- enable I2C
 
   --
   --  Use MGTREFCLK1 (non-programmable) for 156.25 MHz base clock
@@ -628,12 +630,12 @@ begin
       -- QSFP[0] Ports
       qsfp0RstL       => qsfp0RstL   ,
       qsfp0LpMode     => qsfp0LpMode ,
-      qsfp0ModSelL    => qsfp0ModSelL,
+      qsfp0ModSelL    => open,
       qsfp0ModPrsL    => qsfp0ModPrsL,
       -- QSFP[1] Ports
       qsfp1RstL       => qsfp1RstL   ,
       qsfp1LpMode     => qsfp1LpMode ,
-      qsfp1ModSelL    => qsfp1ModSelL,
+      qsfp1ModSelL    => open,
       qsfp1ModPrsL    => qsfp1ModPrsL,
       -- Boot Memory Ports 
       flashCsL        => flashCsL  ,
