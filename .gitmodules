@@ -13,3 +13,6 @@
 [submodule "firmware/submodules/ruckus"]
 	path = firmware/submodules/ruckus
 	url = git@github.com:slaclab/ruckus
+[submodule "firmware/submodules/lcls2-pgp-fw-lib"]
+	path = firmware/submodules/lcls2-pgp-fw-lib
+	url = git@github.com:slaclab/lcls2-pgp-fw-lib
