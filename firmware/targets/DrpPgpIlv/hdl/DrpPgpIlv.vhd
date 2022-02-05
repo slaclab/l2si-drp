@@ -2,7 +2,7 @@
 -- File       : DrpPgpIlvx2.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-24
--- Last update: 2022-02-04
+-- Last update: 2022-02-05
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -191,7 +191,7 @@ architecture top_level of DrpPgpIlv is
      2 => (baseAddr     => x"00E00000",
            addrBits     => 21,
            connectivity => x"FFFF") );
-   constant AXIL1_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(0 downto 0) := ( 0 => AXIL0_CROSSBAR_MASTERS_CONFIG_C(I2C_INDEX_C) );
+   constant AXILI_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(0 downto 0) := ( 0 => AXIL0_CROSSBAR_MASTERS_CONFIG_C(I2C_INDEX_C) );
 
    signal i2cAxilReadMasters  : AxiLiteReadMasterArray (1 downto 0);
    signal i2cAxilReadSlaves   : AxiLiteReadSlaveArray  (1 downto 0);
@@ -387,7 +387,7 @@ begin
   U_AXIL_I2C : entity surf.AxiLiteCrossbar
     generic map ( NUM_SLAVE_SLOTS_G  => 2,
                   NUM_MASTER_SLOTS_G => 1,
-                  MASTERS_CONFIG_G   => AXIL0_CROSSBAR_MASTERS_CONFIG_C(I2C_INDEX_C to I2C_INDEX_C) )
+                  MASTERS_CONFIG_G   => AXILI_CROSSBAR_MASTERS_CONFIG_C )
     port map    ( axiClk              => axilClks        (0),
                   axiClkRst           => axilRsts        (0),
                   sAxiWriteMasters    => i2cAxilWriteMasters,
