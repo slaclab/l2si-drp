@@ -2,7 +2,7 @@
 -- File       : DrpTDet.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-24
--- Last update: 2020-09-09
+-- Last update: 2020-10-01
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -412,11 +412,11 @@ begin
        U_Hw : entity work.PgpNoFbSemi
          generic map (
            AXIL_CLK_FREQ_G => 125.0E6,
-           AXI_BASE_ADDR_G => AXIL0_CROSSBAR_MASTERS_CONFIG_C(TDETSEM_INDEX_C).baseAddr,
+           AXI_BASE_ADDR_G => AXIL0_CROSSBAR_MASTERS_CONFIG_C(PGPSEM_INDEX_C).baseAddr,
            AXIS_CONFIG_G   => DMA_STREAM_CONFIG_C,
            NUM_VC_G        => 4,
            NUM_LANES_G     => 1,
-           RATE_G          => "6.25Gbps")
+           RATE_G          => "3.125Gbps")
          port map (
            ------------------------      
            --  Top Level Interfaces
@@ -513,7 +513,7 @@ begin
                   monClk(0)       => axilClks       (0),
                   monClk(1)       => timingRefClk,
                   monClk(2)       => clk200         (0),
-                  monClk(3)       => userClk156,
+                  monClk(3)       => pgpRefClkMon,
                   migConfig       => migConfig      (1 downto 0),
                   migStatus       => migStatus      (1 downto 0) );
 

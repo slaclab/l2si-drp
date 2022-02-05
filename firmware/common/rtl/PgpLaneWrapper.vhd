@@ -2,7 +2,7 @@
 -- File       : PgpLaneWrapper.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-08-18
+-- Last update: 2020-10-01
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -36,11 +36,12 @@ use unisim.vcomponents.all;
 entity PgpLaneWrapper is
    generic (
       TPD_G            : time             := 1 ns;
-      RATE_G           : string           := "10.3125Gbps";
+      RATE_G           : string           := "10.3125Gbps"; -- 3.125Gbps
       REFCLK_WIDTH_G   : positive         := 2;
       REFCLK_SELECT_G  : string           := "156M"; -- "156M" or "186M"
       NUM_VC_G         : positive         := 16;
       NUM_LANES_G      : integer          := 4;
+      AXIS_CONFIG_G    : AxiStreamConfigType;
       AXIL_CLK_FREQ_G  : real             := 125.0E6;
       AXI_BASE_ADDR_G  : slv(31 downto 0) := (others => '0') );
    port (
@@ -105,6 +106,11 @@ architecture mapping of PgpLaneWrapper is
    signal ibMasters : AxiStreamMasterArray(7 downto 0);
    signal ibSlaves  : AxiStreamSlaveArray(7 downto 0);
 
+   signal pgpObMasters : AxiStreamMasterArray    (7 downto 0);
+   signal pgpObSlaves  : AxiStreamSlaveArray     (7 downto 0);
+   signal pgpIbMasters : AxiStreamQuadMasterArray(7 downto 0);
+   signal pgpIbSlaves  : AxiStreamQuadSlaveArray (7 downto 0);
+
    signal refClk : slv((2*REFCLK_WIDTH_G)-1 downto 0);
    signal monClk : sl;
    attribute dont_touch           : string;
@@ -167,9 +173,7 @@ begin
       
    end generate GEN_REFCLK;
 
-   GEN_PLLCLK :
-   for i in 0 downto 0 generate
-
+   GEN_PLL : if RATE_G = "10.3125Gbps" generate
      GEN_156 : if REFCLK_SELECT_G = "156M" generate
        U_QPLL : entity surf.Pgp3GthUsQpll
          generic map (
@@ -179,11 +183,11 @@ begin
            stableClk  => axilClk,
            stableRst  => axilRst,
            -- QPLL Clocking
-           pgpRefClk  => refClk(i),
-           qpllLock   => qpllLock  ((4*i)+3 downto (4*i)),
-           qpllClk    => qpllClk   ((4*i)+3 downto (4*i)),
-           qpllRefclk => qpllRefclk((4*i)+3 downto (4*i)),
-           qpllRst    => qpllRst   ((4*i)+3 downto (4*i)));
+           pgpRefClk  => refClk    (0),
+           qpllLock   => qpllLock  (3 downto 0),
+           qpllClk    => qpllClk   (3 downto 0),
+           qpllRefclk => qpllRefclk(3 downto 0),
+           qpllRst    => qpllRst   (3 downto 0) );
      end generate;
 
      GEN_186 : if REFCLK_SELECT_G = "186M" generate
@@ -195,14 +199,13 @@ begin
            stableClk  => axilClk,
            stableRst  => axilRst,
            -- QPLL Clocking
-           pgpRefClk  => refClk(i),
-           qpllLock   => qpllLock  ((4*i)+3 downto (4*i)),
-           qpllClk    => qpllClk   ((4*i)+3 downto (4*i)),
-           qpllRefclk => qpllRefclk((4*i)+3 downto (4*i)),
-           qpllRst    => qpllRst   ((4*i)+3 downto (4*i)));
+           pgpRefClk  => refClk    (0),
+           qpllLock   => qpllLock  (3 downto 0),
+           qpllClk    => qpllClk   (3 downto 0),
+           qpllRefclk => qpllRefclk(3 downto 0),
+           qpllRst    => qpllRst   (3 downto 0) );
      end generate;
-
-   end generate GEN_PLLCLK;
+   end generate;
 
    --------------------------------
    -- Mapping QSFP[1:0] to PGP[7:0]
@@ -254,16 +257,18 @@ begin
         port map ( clk        => axilClk,
                    dataIn     => rxLinkId(i),
                    dataOut    => rxLinkIdS(i) );
-      
-      U_Lane : entity work.PgpLane
-         generic map (
+
+      GEN_PGP3 : if RATE_G = "10.3125Gbps" generate
+        U_Lane : entity work.PgpLane
+          generic map (
             TPD_G            => TPD_G,
             LANE_G           => i,
             REFCLK_SELECT_G  => REFCLK_SELECT_G,
+            RATE_G           => RATE_G,
             NUM_VC_G         => NUM_VC_G,
             AXIL_CLK_FREQ_G  => AXIL_CLK_FREQ_G,
             AXI_BASE_ADDR_G  => AXI_CONFIG_C(i).baseAddr )
-         port map (
+          port map (
             -- QPLL Interface
             qpllLock        => qpllLock(i),
             qpllClk         => qpllClk(i),
@@ -283,7 +288,7 @@ begin
             dmaIbSlave      => ibSlaves (i),
             dmaIbFull       => dmaIbFull(i),
             sAxisCtrl       => sAxisCtrl(i),
-             -- OOB Signals
+            -- OOB Signals
             txOpCodeEn      => txOpCodeEn(i),
             txOpCode        => txOpCode  (i),
             txLinkId        => txLinkId  (i),
@@ -294,16 +299,70 @@ begin
             usrRxReset      => r.rxReset,
             fifoThres       => fifoThres,
             fifoDepth       => fifoDepth(i),
-           -- AXI-Lite Interface (axilClk domain)
+            -- AXI-Lite Interface (axilClk domain)
             axilClk         => axilClk,
             axilRst         => axilRst,
             axilReadMaster  => axilReadMasters(i),
             axilReadSlave   => axilReadSlaves(i),
             axilWriteMaster => axilWriteMasters(i),
             axilWriteSlave  => axilWriteSlaves(i));
+      end generate;
+      
+      GEN_PGP2 : if RATE_G = "3.125Gbps" generate
+        U_Lane : entity work.Pgp2bLane
+          generic map (
+            TPD_G             => TPD_G,
+            DMA_AXIS_CONFIG_G => AXIS_CONFIG_G,
+            AXIL_CLK_FREQ_G   => AXIL_CLK_FREQ_G,
+            AXI_BASE_ADDR_G   => AXI_CONFIG_C(i).baseAddr )
+          port map (
+            -- Trigger Interface,
+            trigger         => txOpCodeEn(i),
+            -- PGP Serial Ports
+            pgpRxP          => pgpRxP(i),
+            pgpRxN          => pgpRxN(i),
+            pgpTxP          => pgpTxP(i),
+            pgpTxN          => pgpTxN(i),
+            pgpRefClk       => refClk(0),
+            -- DMA Interface (axilClk domain)
+            pgpIbMaster     => pgpObMasters(i),
+            pgpIbSlave      => pgpObSlaves (i),
+            pgpObMasters    => pgpIbMasters(i),
+            pgpObSlaves     => pgpIbSlaves (i),
+            -- AXI-Lite Interface (axilClk domain)
+            axilClk         => axilClk,
+            axilRst         => axilRst,
+            axilReadMaster  => axilReadMasters (i),
+            axilReadSlave   => axilReadSlaves  (i),
+            axilWriteMaster => axilWriteMasters(i),
+            axilWriteSlave  => axilWriteSlaves (i));
 
-      obMasters(i)   <= dmaObMasters(i);
-      dmaObSlaves(i) <= obSlaves(i);
+        idmaClks(i) <= axilClk;
+        dmaRsts (i) <= axilRst;
+
+        U_Mux : entity surf.AxiStreamMux
+          generic map (
+            TPD_G                => TPD_G,
+            NUM_SLAVES_G         => 4,
+            ILEAVE_EN_G          => true,
+            ILEAVE_ON_NOTVALID_G => false,
+            ILEAVE_REARB_G       => 128,
+            PIPE_STAGES_G        => 1)
+          port map (
+            -- Clock and reset
+            axisClk         => axilClk,
+            axisRst         => axilRst,
+            -- Inbound Master Ports
+            sAxisMasters    => pgpIbMasters(i),
+            -- Inbound Slave Ports
+            sAxisSlaves     => pgpIbSlaves (i),
+            -- Outbound Port
+            mAxisMaster     => ibMasters(i),
+            mAxisSlave      => ibSlaves (i));
+      end generate;
+      
+      obMasters(i)    <= dmaObMasters(i);
+      dmaObSlaves(i)  <= obSlaves(i);
 
       dmaIbMasters(i) <= ibMasters(i);
       ibSlaves(i)     <= dmaIbSlaves(i);

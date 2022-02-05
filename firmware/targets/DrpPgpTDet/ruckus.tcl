@@ -6,6 +6,7 @@ loadRuckusTcl $::env(TOP_DIR)/submodules
 loadRuckusTcl $::env(TOP_DIR)/submodules/axi-pcie-core/hardware/XilinxKcu1500
 loadRuckusTcl $::env(TOP_DIR)/submodules/axi-pcie-core/hardware/XilinxKcu1500/ddr
 #loadRuckusTcl $::env(TOP_DIR)/submodules/axi-pcie-core/hardware/XilinxKcu1500/pcie-extended
+loadRuckusTcl $::env(TOP_DIR)/submodules/lcls2-pgp-fw-lib/shared
 
 loadRuckusTcl $::env(TOP_DIR)/common
 loadRuckusTcl $::env(TOP_DIR)/common/coregen

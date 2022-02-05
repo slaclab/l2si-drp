@@ -12,12 +12,14 @@ import pyrogue as pr
 
 import surf.protocols.batcher as batcher
 import surf.protocols.pgp     as pgp
+import surf.axi               as axi
 
 class PgpLaneWrapper(pr.Device):
     def __init__(self,
                  name        = 'PgpSemi',
                  description = 'Pgp Application',
                  numLanes    = 1,
+                 usePgp3     = True,
                  **kwargs):
         super().__init__(
             name        = name,
@@ -26,10 +28,26 @@ class PgpLaneWrapper(pr.Device):
         )
 
         for i in range(numLanes):
-            self.add(pgp.Pgp3AxiL(
-                name    = 'Pgp3AxiL_%d'%i,
-                offset  = 0x10000*i,
-            ))
+            if usePgp3:
+                self.add(pgp.Pgp3AxiL(
+                        name    = 'Pgp3AxiL_%d'%i,
+                        offset  = 0x10000*i,
+                        writeEn = True,
+                        ))
+            else:
+                self.add(pgp.Pgp2bAxi(
+                        name    = 'Pgp2bAxi_%d'%i,
+                        offset  = 0x10000*i,
+                        writeEn = True,
+                        ))
+                self.add(axi.AxiStreamMonAxiL(
+                        name    = 'TxMon_%d'%i,
+                        offset  = 0x12000*i,
+                        ))
+                self.add(axi.AxiStreamMonAxiL(
+                        name    = 'RxMon_%d'%i,
+                        offset  = 0x14000*i,
+                        ))
 
         for i in range(numLanes):
             self.add(pr.RemoteVariable(

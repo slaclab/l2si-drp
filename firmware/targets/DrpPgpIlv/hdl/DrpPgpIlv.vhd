@@ -2,7 +2,7 @@
 -- File       : DrpPgpIlvx2.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-24
--- Last update: 2020-02-09
+-- Last update: 2021-09-27
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ architecture top_level of DrpPgpIlv is
    signal mAxil0WriteMasters : AxiLiteWriteMasterArray(NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_MASTER_INIT_C);
    signal mAxil0WriteSlaves  : AxiLiteWriteSlaveArray (NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_SLAVE_EMPTY_OK_C);
 
-   constant NUM_AXIL1_MASTERS_C : integer := 2;
+   constant NUM_AXIL1_MASTERS_C : integer := 3;
    signal mAxil1ReadMasters  : AxiLiteReadMasterArray (NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_MASTER_INIT_C);
    signal mAxil1ReadSlaves   : AxiLiteReadSlaveArray  (NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_SLAVE_EMPTY_OK_C);
    signal mAxil1WriteMasters : AxiLiteWriteMasterArray(NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_MASTER_INIT_C);
@@ -187,7 +187,20 @@ architecture top_level of DrpPgpIlv is
            connectivity => x"FFFF"),
      1 => (baseAddr     => x"00A00000",
            addrBits     => 21,
+           connectivity => x"FFFF"),
+     2 => (baseAddr     => x"00E00000",
+           addrBits     => 21,
            connectivity => x"FFFF") );
+
+   signal i2cAxilReadMasters  : AxiLiteReadMasterArray (1 downto 0);
+   signal i2cAxilReadSlaves   : AxiLiteReadSlaveArray  (1 downto 0);
+   signal i2cAxilWriteMasters : AxiLiteWriteMasterArray(1 downto 0);
+   signal i2cAxilWriteSlaves  : AxiLiteWriteSlaveArray (1 downto 0);
+
+   signal i2cReadMaster  : AxiLiteReadMasterType;
+   signal i2cReadSlave   : AxiLiteReadSlaveType;
+   signal i2cWriteMaster : AxiLiteWriteMasterType;
+   signal i2cWriteSlave  : AxiLiteWriteSlaveType;
 
    signal pgpAxilReadMasters  : AxiLiteReadMasterArray (1 downto 0);
    signal pgpAxilReadSlaves   : AxiLiteReadSlaveArray  (1 downto 0);
@@ -347,16 +360,53 @@ begin
   mtpAxilWriteMasters(1) <= mAxil1WriteMasters(MIGTPCI_INDEX_C);
   mAxil1ReadSlaves (MIGTPCI_INDEX_C) <= mtpAxilReadSlaves (1);
   mAxil1WriteSlaves(MIGTPCI_INDEX_C) <= mtpAxilWriteSlaves(1);
-                    
+
+  U_AXIL_ASYNC : entity surf.AxiLiteAsync
+   port map (
+      -- Slave Port
+      sAxiClk         => axilClks(1),
+      sAxiClkRst      => axilRsts(1),
+      sAxiReadMaster  => mAxil1ReadMasters (I2C_INDEX_C),
+      sAxiReadSlave   => mAxil1ReadSlaves  (I2C_INDEX_C),
+      sAxiWriteMaster => mAxil1WriteMasters(I2C_INDEX_C),
+      sAxiWriteSlave  => mAxil1WriteSlaves (I2C_INDEX_C),
+      -- Master Port
+      mAxiClk         => axilClks(0),
+      mAxiClkRst      => axilRsts(0),
+      mAxiReadMaster  => i2cAxilReadMasters (1),
+      mAxiReadSlave   => i2cAxilReadSlaves  (1),
+      mAxiWriteMaster => i2cAxilWriteMasters(1),
+      mAxiWriteSlave  => i2cAxilWriteSlaves (1) );
+
+  i2cAxilReadMasters (0) <= mAxil0ReadMasters (I2C_INDEX_C);
+  i2cAxilWriteMasters(0) <= mAxil0WriteMasters(I2C_INDEX_C);
+  mAxil0ReadSlaves  (I2C_INDEX_C) <= i2cAxilReadSlaves (0);
+  mAxil0WriteSlaves (I2C_INDEX_C) <= i2cAxilWriteSlaves(0);
+
+  U_AXIL_I2C : entity surf.AxiLiteCrossbar
+    generic map ( NUM_SLAVE_SLOTS_G  => 2,
+                  NUM_MASTER_SLOTS_G => 1,
+                  MASTERS_CONFIG_G   => AXIL0_CROSSBAR_MASTERS_CONFIG_C(I2C_INDEX_C to I2C_INDEX_C) )
+    port map    ( axiClk              => axilClks        (0),
+                  axiClkRst           => axilRsts        (0),
+                  sAxiWriteMasters    => i2cAxilWriteMasters,
+                  sAxiWriteSlaves     => i2cAxilWriteSlaves ,
+                  sAxiReadMasters     => i2cAxilReadMasters ,
+                  sAxiReadSlaves      => i2cAxilReadSlaves  ,
+                  mAxiWriteMasters(0) => i2cWriteMaster,
+                  mAxiWriteSlaves (0) => i2cWriteSlave ,
+                  mAxiReadMasters (0) => i2cReadMaster ,
+                  mAxiReadSlaves  (0) => i2cReadSlave  );
+    
   U_I2C : entity surf.AxiI2cRegMaster
     generic map ( DEVICE_MAP_G   => DEVICE_MAP_C,
                   AXI_CLK_FREQ_G => 125.0E+6 )
     port map ( scl            => scl,
                sda            => sda,
-               axiReadMaster  => mAxil0ReadMasters (I2C_INDEX_C),
-               axiReadSlave   => mAxil0ReadSlaves  (I2C_INDEX_C),
-               axiWriteMaster => mAxil0WriteMasters(I2C_INDEX_C),
-               axiWriteSlave  => mAxil0WriteSlaves (I2C_INDEX_C),
+               axiReadMaster  => i2cReadMaster ,
+               axiReadSlave   => i2cReadSlave  ,
+               axiWriteMaster => i2cWriteMaster,
+               axiWriteSlave  => i2cWriteSlave ,
                axiClk         => axilClks(0),
                axiRst         => axilRsts(0) );
 

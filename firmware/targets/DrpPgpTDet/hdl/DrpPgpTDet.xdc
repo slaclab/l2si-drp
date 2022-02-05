@@ -60,8 +60,15 @@ set_clock_groups -asynchronous \
                  -group [get_clocks -include_generated_clocks timingRefClkP] \
                  -group [get_clocks timingRecClk]
 
+create_generated_clock -name pgpRxClk0 [get_pins {GEN_SEMI[0].U_Hw/U_Pgp/GEN_LANE[0].GEN_PGP2.U_Lane/U_Pgp/PgpGthCoreWrapper_1/U_PgpGthCore/inst/gen_gtwizard_gthe3_top.PgpGthCore_gtwizard_gthe3_inst/gen_gtwizard_gthe3.gen_channel_container[2].gen_enabled_channel.gthe3_channel_wrapper_inst/channel_inst/gthe3_channel_gen.gen_gthe3_channel_inst[0].GTHE3_CHANNEL_PRIM_INST/RXOUTCLK}]
+create_generated_clock -name pgpTxClk0 [get_pins {GEN_SEMI[0].U_Hw/U_Pgp/GEN_LANE[0].GEN_PGP2.U_Lane/U_Pgp/PgpGthCoreWrapper_1/U_PgpGthCore/inst/gen_gtwizard_gthe3_top.PgpGthCore_gtwizard_gthe3_inst/gen_gtwizard_gthe3.gen_channel_container[2].gen_enabled_channel.gthe3_channel_wrapper_inst/channel_inst/gthe3_channel_gen.gen_gthe3_channel_inst[0].GTHE3_CHANNEL_PRIM_INST/TXOUTCLK}]
+
+set_clock_groups -asynchronous \
+                 -group [get_clocks pgpRxClk0]
+                 -group [get_clocks pgpTxClk0]
 
 set_false_path -through [get_pins {GEN_SEMI[0].U_MMCM/RstOutGen[0].RstSync_1/syncRst_reg/Q}]
 set_false_path -through [get_pins {GEN_SEMI[0].U_MMCM/RstOutGen[2].RstSync_1/syncRst_reg/Q}]
+
 
 

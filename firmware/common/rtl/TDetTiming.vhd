@@ -5,7 +5,7 @@
 -- Author     : Matt Weaver <weaver@slac.stanford.edu>
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2015-07-08
--- Last update: 2020-02-08
+-- Last update: 2021-04-02
 -- Platform   : 
 -- Standard   : VHDL'93/02
 -------------------------------------------------------------------------------
@@ -258,6 +258,7 @@ begin
          timingRxClk      => rxOutClk,
          timingRxRst      => rxRst,
          timingBus        => timingBus,
+         timingMode       => timingMode,
          timingTxClk      => txUsrClk,
          timingTxRst      => txUsrRst,
          timingTxPhy      => fbTx,

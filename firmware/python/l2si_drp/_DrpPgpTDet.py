@@ -46,6 +46,7 @@ class DrpPgpTDet(pr.Device):
             name     = 'PgpSemi',
             offset    = 0x00B0_0000,
             numLanes  = numPgpLanes,
+            usePgp3   = False,
             expand    = False,
         ))
 

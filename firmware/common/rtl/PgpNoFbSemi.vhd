@@ -2,7 +2,7 @@
 -- File       : HardwareSemi.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-09-11
+-- Last update: 2020-10-01
 -------------------------------------------------------------------------------
 -- Description: HardwareSemi File
 -------------------------------------------------------------------------------
@@ -110,6 +110,12 @@ architecture mapping of PgpNoFbSemi is
    
 begin
 
+   assert ((RATE_G = "10.3125Gbps") or (RATE_G = "3.125Gbps"))
+     report "RATE_G must be either 10.3125Gbps or 3.125Gbps" severity failure;
+
+   assert ((RATE_G = "10.3125Gbps") or (NUM_VC_G = 4))
+     report "NUM_VC_G must be 4 for 3.125Gbps" severity failure;
+   
    dmaClks <= idmaClks;
    dmaRsts <= idmaRsts;
 
@@ -141,6 +147,7 @@ begin
       generic map (
          TPD_G            => TPD_G,
          RATE_G           => RATE_G,
+         AXIS_CONFIG_G    => AXIS_CONFIG_G,
          REFCLK_WIDTH_G   => 1,
          REFCLK_SELECT_G  => REFCLK_SELECT_G,
          NUM_VC_G         => NUM_VC_G,

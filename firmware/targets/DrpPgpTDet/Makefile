@@ -4,7 +4,8 @@ export OVERRIDE_SUBMODULE_LOCKS = 1
 # Define Firmware Version Number
 #  PRJ_VERSION = 0x00000000 - original with XVC
 #  PRJ_VERSION = 0x00000001 - swap QSFP assignments
-export PRJ_VERSION = 0x00000001
+#  PRJ_VERSION = 0x00000002 - switch to Pgp2b 3.125Gbps
+export PRJ_VERSION = 0x00000002
 
 # Define the Hardware Type in the axi-pcie-core
 export PCIE_HW_TYPE = XilinxKcu1500
