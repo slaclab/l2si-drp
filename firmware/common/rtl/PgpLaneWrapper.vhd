@@ -41,7 +41,6 @@ entity PgpLaneWrapper is
       REFCLK_SELECT_G  : string           := "156M"; -- "156M" or "186M"
       NUM_VC_G         : positive         := 16;
       NUM_LANES_G      : integer          := 4;
-      AXIS_CONFIG_G    : AxiStreamConfigType;
       AXIL_CLK_FREQ_G  : real             := 125.0E6;
       AXI_BASE_ADDR_G  : slv(31 downto 0) := (others => '0') );
    port (
