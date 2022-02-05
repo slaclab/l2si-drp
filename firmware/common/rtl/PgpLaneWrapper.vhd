@@ -2,7 +2,7 @@
 -- File       : PgpLaneWrapper.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-10-01
+-- Last update: 2022-02-04
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -36,7 +36,7 @@ use unisim.vcomponents.all;
 entity PgpLaneWrapper is
    generic (
       TPD_G            : time             := 1 ns;
-      RATE_G           : string           := "10.3125Gbps"; -- 3.125Gbps
+      RATE_G           : string           := "10.3125Gbps"; -- 3.125Gbps (unused)
       REFCLK_WIDTH_G   : positive         := 2;
       REFCLK_SELECT_G  : string           := "156M"; -- "156M" or "186M"
       NUM_VC_G         : positive         := 16;
@@ -258,108 +258,53 @@ begin
                    dataIn     => rxLinkId(i),
                    dataOut    => rxLinkIdS(i) );
 
-      GEN_PGP3 : if RATE_G = "10.3125Gbps" generate
-        U_Lane : entity work.PgpLane
-          generic map (
-            TPD_G            => TPD_G,
-            LANE_G           => i,
-            REFCLK_SELECT_G  => REFCLK_SELECT_G,
-            RATE_G           => RATE_G,
-            NUM_VC_G         => NUM_VC_G,
-            AXIL_CLK_FREQ_G  => AXIL_CLK_FREQ_G,
-            AXI_BASE_ADDR_G  => AXI_CONFIG_C(i).baseAddr )
-          port map (
-            -- QPLL Interface
-            qpllLock        => qpllLock(i),
-            qpllClk         => qpllClk(i),
-            qpllRefclk      => qpllRefclk(i),
-            qpllRst         => qpllRstF(i),
-            -- PGP Serial Ports
-            pgpRxP          => pgpRxP(i),
-            pgpRxN          => pgpRxN(i),
-            pgpTxP          => pgpTxP(i),
-            pgpTxN          => pgpTxN(i),
-            -- DMA Interface (dmaClk domain)
-            dmaClk          => idmaClks  (i),
-            dmaRst          => dmaRsts  (i),
-            dmaObMaster     => obMasters(i),
-            dmaObSlave      => obSlaves (i),
-            dmaIbMaster     => ibMasters(i),
-            dmaIbSlave      => ibSlaves (i),
-            dmaIbFull       => dmaIbFull(i),
-            sAxisCtrl       => sAxisCtrl(i),
-            -- OOB Signals
-            txOpCodeEn      => txOpCodeEn(i),
-            txOpCode        => txOpCode  (i),
-            txLinkId        => txLinkId  (i),
-            rxOpCodeEn      => rxOpCodeEn(i),
-            rxOpCode        => rxOpCode  (i),
-            rxLinkId        => rxLinkId  (i),
-            usrTxReset      => r.txReset,
-            usrRxReset      => r.rxReset,
-            fifoThres       => fifoThres,
-            fifoDepth       => fifoDepth(i),
-            -- AXI-Lite Interface (axilClk domain)
-            axilClk         => axilClk,
-            axilRst         => axilRst,
-            axilReadMaster  => axilReadMasters(i),
-            axilReadSlave   => axilReadSlaves(i),
-            axilWriteMaster => axilWriteMasters(i),
-            axilWriteSlave  => axilWriteSlaves(i));
-      end generate;
-      
-      GEN_PGP2 : if RATE_G = "3.125Gbps" generate
-        U_Lane : entity work.Pgp2bLane
-          generic map (
-            TPD_G             => TPD_G,
-            DMA_AXIS_CONFIG_G => AXIS_CONFIG_G,
-            AXIL_CLK_FREQ_G   => AXIL_CLK_FREQ_G,
-            AXI_BASE_ADDR_G   => AXI_CONFIG_C(i).baseAddr )
-          port map (
-            -- Trigger Interface,
-            trigger         => txOpCodeEn(i),
-            -- PGP Serial Ports
-            pgpRxP          => pgpRxP(i),
-            pgpRxN          => pgpRxN(i),
-            pgpTxP          => pgpTxP(i),
-            pgpTxN          => pgpTxN(i),
-            pgpRefClk       => refClk(0),
-            -- DMA Interface (axilClk domain)
-            pgpIbMaster     => pgpObMasters(i),
-            pgpIbSlave      => pgpObSlaves (i),
-            pgpObMasters    => pgpIbMasters(i),
-            pgpObSlaves     => pgpIbSlaves (i),
-            -- AXI-Lite Interface (axilClk domain)
-            axilClk         => axilClk,
-            axilRst         => axilRst,
-            axilReadMaster  => axilReadMasters (i),
-            axilReadSlave   => axilReadSlaves  (i),
-            axilWriteMaster => axilWriteMasters(i),
-            axilWriteSlave  => axilWriteSlaves (i));
-
-        idmaClks(i) <= axilClk;
-        dmaRsts (i) <= axilRst;
-
-        U_Mux : entity surf.AxiStreamMux
-          generic map (
-            TPD_G                => TPD_G,
-            NUM_SLAVES_G         => 4,
-            ILEAVE_EN_G          => true,
-            ILEAVE_ON_NOTVALID_G => false,
-            ILEAVE_REARB_G       => 128,
-            PIPE_STAGES_G        => 1)
-          port map (
-            -- Clock and reset
-            axisClk         => axilClk,
-            axisRst         => axilRst,
-            -- Inbound Master Ports
-            sAxisMasters    => pgpIbMasters(i),
-            -- Inbound Slave Ports
-            sAxisSlaves     => pgpIbSlaves (i),
-            -- Outbound Port
-            mAxisMaster     => ibMasters(i),
-            mAxisSlave      => ibSlaves (i));
-      end generate;
+      U_Lane : entity work.PgpLane
+        generic map (
+          TPD_G            => TPD_G,
+          LANE_G           => i,
+          REFCLK_SELECT_G  => REFCLK_SELECT_G,
+          RATE_G           => RATE_G,
+          NUM_VC_G         => NUM_VC_G,
+          AXIL_CLK_FREQ_G  => AXIL_CLK_FREQ_G,
+          AXI_BASE_ADDR_G  => AXI_CONFIG_C(i).baseAddr )
+        port map (
+          -- QPLL Interface
+          qpllLock        => qpllLock(i),
+          qpllClk         => qpllClk(i),
+          qpllRefclk      => qpllRefclk(i),
+          qpllRst         => qpllRstF(i),
+          -- PGP Serial Ports
+          pgpRxP          => pgpRxP(i),
+          pgpRxN          => pgpRxN(i),
+          pgpTxP          => pgpTxP(i),
+          pgpTxN          => pgpTxN(i),
+          -- DMA Interface (dmaClk domain)
+          dmaClk          => idmaClks  (i),
+          dmaRst          => dmaRsts  (i),
+          dmaObMaster     => obMasters(i),
+          dmaObSlave      => obSlaves (i),
+          dmaIbMaster     => ibMasters(i),
+          dmaIbSlave      => ibSlaves (i),
+          dmaIbFull       => dmaIbFull(i),
+          sAxisCtrl       => sAxisCtrl(i),
+          -- OOB Signals
+          txOpCodeEn      => txOpCodeEn(i),
+          txOpCode        => txOpCode  (i),
+          txLinkId        => txLinkId  (i),
+          rxOpCodeEn      => rxOpCodeEn(i),
+          rxOpCode        => rxOpCode  (i),
+          rxLinkId        => rxLinkId  (i),
+          usrTxReset      => r.txReset,
+          usrRxReset      => r.rxReset,
+          fifoThres       => fifoThres,
+          fifoDepth       => fifoDepth(i),
+          -- AXI-Lite Interface (axilClk domain)
+          axilClk         => axilClk,
+          axilRst         => axilRst,
+          axilReadMaster  => axilReadMasters(i),
+          axilReadSlave   => axilReadSlaves(i),
+          axilWriteMaster => axilWriteMasters(i),
+          axilWriteSlave  => axilWriteSlaves(i));
       
       obMasters(i)    <= dmaObMasters(i);
       dmaObSlaves(i)  <= obSlaves(i);
