@@ -1,0 +1,36 @@
+
+GitBase: ..
+
+TopRoguePackage: l2si-drp
+
+RoguePackages:
+  - submodules/axi-pcie-core/python
+  - submodules/l2si-core/python
+  - submodules/lcls-timing-core/python
+  - submodules/surf/python
+  - python     
+
+#RogueConfig:
+#  - ../software/config
+
+#RogueScripts:
+#  - ../software/scripts/devGui
+
+Targets:
+  DrpTDet:
+    ImageDir: targets/DrpTDet/images
+    Extensions:
+      - mcs
+  DrpPgpIlv:
+    ImageDir: targets/DrpPgpIlv/images
+    Extensions:
+      - mcs
+
+Releases:
+  all:
+    Primary: True
+    Targets:
+      - DrpTDet
+      - DrpPgpIlv
+    Types:
+      - firmware
