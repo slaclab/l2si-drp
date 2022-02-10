@@ -2,7 +2,7 @@
 -- File       : DrpPgpIlvx2.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-24
--- Last update: 2022-02-05
+-- Last update: 2022-02-09
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -71,6 +71,8 @@ entity DrpPgpIlv is
       scl          : inout sl;
       sda          : inout sl;
       i2c_rst_l    : out   sl;
+      noi2cScl     : inout sl;
+      noi2cSda     : inout sl;
       -- QSFP[0] Ports
       qsfp0RstL    : out   sl;
       qsfp0LpMode  : out   sl;
@@ -171,7 +173,7 @@ architecture top_level of DrpPgpIlv is
    signal mAxil1WriteMasters : AxiLiteWriteMasterArray(NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_MASTER_INIT_C);
    signal mAxil1WriteSlaves  : AxiLiteWriteSlaveArray (NUM_AXIL1_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_SLAVE_EMPTY_OK_C);
    
-   constant AXIL0_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL0_MASTERS_C-1 downto 0) := (
+   constant AXIL_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL0_MASTERS_C-1 downto 0) := (
      0 => (baseAddr     => x"00800000",
            addrBits     => 21,
            connectivity => x"FFFF"),
@@ -181,17 +183,8 @@ architecture top_level of DrpPgpIlv is
      2 => (baseAddr     => x"00E00000",
            addrBits     => 21,
            connectivity => x"FFFF") );
-   constant AXIL1_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL1_MASTERS_C-1 downto 0) := (
-     0 => (baseAddr     => x"00800000",
-           addrBits     => 21,
-           connectivity => x"FFFF"),
-     1 => (baseAddr     => x"00A00000",
-           addrBits     => 21,
-           connectivity => x"FFFF"),
-     2 => (baseAddr     => x"00E00000",
-           addrBits     => 21,
-           connectivity => x"FFFF") );
-   constant AXILI_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(0 downto 0) := ( 0 => AXIL0_CROSSBAR_MASTERS_CONFIG_C(I2C_INDEX_C) );
+
+   constant AXILI_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(0 downto 0) :=( 0 => AXIL_CROSSBAR_MASTERS_CONFIG_C(I2C_INDEX_C) );
 
    signal i2cAxilReadMasters  : AxiLiteReadMasterArray (1 downto 0);
    signal i2cAxilReadSlaves   : AxiLiteReadSlaveArray  (1 downto 0);
@@ -267,7 +260,6 @@ architecture top_level of DrpPgpIlv is
 
 begin
 
-  i2c_rst_l      <= '1';
   qsfpModPrsL(0) <= qsfp0ModPrsL;
   qsfpModPrsL(1) <= qsfp1ModPrsL;
   qsfp0ModSelL   <= '0';  -- enable I2C
@@ -314,8 +306,8 @@ begin
   
   U_AxilXbar0 : entity surf.AxiLiteCrossbar
     generic map ( NUM_SLAVE_SLOTS_G  => 1,
-                  NUM_MASTER_SLOTS_G => AXIL0_CROSSBAR_MASTERS_CONFIG_C'length,
-                  MASTERS_CONFIG_G   => AXIL0_CROSSBAR_MASTERS_CONFIG_C )
+                  NUM_MASTER_SLOTS_G => AXIL_CROSSBAR_MASTERS_CONFIG_C'length,
+                  MASTERS_CONFIG_G   => AXIL_CROSSBAR_MASTERS_CONFIG_C )
     port map    ( axiClk              => axilClks        (0),
                   axiClkRst           => axilRsts        (0),
                   sAxiWriteMasters(0) => axilWriteMasters(0),
@@ -329,8 +321,8 @@ begin
 
   U_AxilXbar1 : entity surf.AxiLiteCrossbar
     generic map ( NUM_SLAVE_SLOTS_G  => 1,
-                  NUM_MASTER_SLOTS_G => AXIL1_CROSSBAR_MASTERS_CONFIG_C'length,
-                  MASTERS_CONFIG_G   => AXIL1_CROSSBAR_MASTERS_CONFIG_C )
+                  NUM_MASTER_SLOTS_G => AXIL_CROSSBAR_MASTERS_CONFIG_C'length,
+                  MASTERS_CONFIG_G   => AXIL_CROSSBAR_MASTERS_CONFIG_C )
     port map    ( axiClk              => axilClks        (1),
                   axiClkRst           => axilRsts        (1),
                   sAxiWriteMasters(0) => axilWriteMasters(1),
@@ -363,7 +355,7 @@ begin
   mAxil1WriteSlaves(MIGTPCI_INDEX_C) <= mtpAxilWriteSlaves(1);
 
   U_AXIL_ASYNC : entity surf.AxiLiteAsync
-   port map (
+    port map (
       -- Slave Port
       sAxiClk         => axilClks(1),
       sAxiClkRst      => axilRsts(1),
@@ -398,7 +390,7 @@ begin
                   mAxiWriteSlaves (0) => i2cWriteSlave ,
                   mAxiReadMasters (0) => i2cReadMaster ,
                   mAxiReadSlaves  (0) => i2cReadSlave  );
-    
+  
   U_I2C : entity surf.AxiI2cRegMaster
     generic map ( DEVICE_MAP_G   => DEVICE_MAP_C,
                   AXI_CLK_FREQ_G => 125.0E+6 )
@@ -460,7 +452,7 @@ begin
       generic map (
         REFCLK_SELECT_G => "186M",
         AXIL_CLK_FREQ_G => 125.0E6,
-        AXI_BASE_ADDR_G => AXIL0_CROSSBAR_MASTERS_CONFIG_C(HWSEM_INDEX_C).baseAddr )
+        AXI_BASE_ADDR_G => AXIL_CROSSBAR_MASTERS_CONFIG_C(HWSEM_INDEX_C).baseAddr )
       port map (
         ------------------------      
         --  Top Level Interfaces
@@ -609,6 +601,9 @@ begin
       emcClk          => emcClk,
       userClkP        => userClkP,
       userClkN        => userClkN,
+      i2cRstL         => i2c_rst_l,
+      i2cScl          => noi2cScl,
+      i2cSda          => noi2cSda,
 --      swDip           => swDip,
 --      led             => led,
       -- QSFP[0] Ports

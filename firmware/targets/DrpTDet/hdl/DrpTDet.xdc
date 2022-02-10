@@ -7,6 +7,10 @@ set_property PACKAGE_PIN AU45 [get_ports timingRxP]
 set_property PACKAGE_PIN AU41 [get_ports timingTxN]
 set_property PACKAGE_PIN AU40 [get_ports timingTxP]
 
+# False I2c bus
+set_property -dict { PACKAGE_PIN AN23  IOSTANDARD LVCMOS18 } [get_ports { noi2cScl }];
+set_property -dict { PACKAGE_PIN AP23  IOSTANDARD LVCMOS18 } [get_ports { noi2cSda }];
+
 create_clock -period 5.380 -name timingRefClkP [get_ports timingRefClkP]
 
 # QSFP1 MGTREFCLK1 (non-programmable)
@@ -53,3 +57,4 @@ set_false_path -through [get_pins {GEN_SEMI[0].U_MMCM/RstOutGen[0].RstSync_1/syn
 set_false_path -through [get_pins {GEN_SEMI[0].U_MMCM/RstOutGen[2].RstSync_1/syncRst_reg/Q}]
 set_false_path -through [get_pins {GEN_SEMI[1].U_MMCM/RstOutGen[0].RstSync_1/syncRst_reg/Q}]
 set_false_path -through [get_pins {GEN_SEMI[1].U_MMCM/RstOutGen[2].RstSync_1/syncRst_reg/Q}]
+

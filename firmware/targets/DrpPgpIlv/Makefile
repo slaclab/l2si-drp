@@ -5,7 +5,7 @@
 #  PRJ_VERSION = 0x00000005 - Rebuilt with l2si-core/lcls-timingcore refactor
 #  PRJ_VERSION = 0x00000006 - Test interrupt holdoff register
 #  PRJ_VERSION = 0x01010000 - Rebuild for release
-export PRJ_VERSION = 0x01010000
+export PRJ_VERSION = 0x03060000
 
 # Define the Hardware Type in the axi-pcie-core
 export PCIE_HW_TYPE = XilinxKcu1500

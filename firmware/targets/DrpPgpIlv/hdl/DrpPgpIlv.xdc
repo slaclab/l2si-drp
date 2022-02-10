@@ -2,6 +2,9 @@ set_property -dict {PACKAGE_PIN AP24 IOSTANDARD LVCMOS18} [get_ports sda]
 set_property -dict {PACKAGE_PIN AN24 IOSTANDARD LVCMOS18} [get_ports scl]
 set_property -dict {PACKAGE_PIN AL24 IOSTANDARD LVCMOS18} [get_ports i2c_rst_l]
 
+set_property -dict { PACKAGE_PIN AN23  IOSTANDARD LVCMOS18 } [get_ports { noi2cScl }];
+set_property -dict { PACKAGE_PIN AP23  IOSTANDARD LVCMOS18 } [get_ports { noi2cSda }];
+
 create_clock -period 3.332 -name ddrClkP0 [get_ports {ddrClkP[0]}]
 create_clock -period 3.332 -name ddrClkP1 [get_ports {ddrClkP[1]}]
 

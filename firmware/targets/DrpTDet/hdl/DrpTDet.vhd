@@ -2,7 +2,7 @@
 -- File       : DrpTDet.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-24
--- Last update: 2022-02-05
+-- Last update: 2022-02-09
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -71,6 +71,8 @@ entity DrpTDet is
       i2cScl       : inout sl;
       i2cSda       : inout sl;
       i2cRstL      : out   sl;
+      noi2cScl     : inout sl;
+      noi2cSda     : inout sl;
       -- QSFP[0] Ports
       qsfp0RstL    : out   sl;
       qsfp0LpMode  : out   sl;
@@ -152,10 +154,10 @@ architecture top_level of DrpTDet is
    constant MIGTPCI_INDEX_C   : integer := 0;
    constant TDETSEM_INDEX_C   : integer := 1;
    constant TDETTIM_INDEX_C   : integer := 2;
---   constant I2C_INDEX_C       : integer := 3;
+   constant I2C_INDEX_C       : integer := 3;
 
---   constant NUM_AXIL0_MASTERS_C : integer := 4;
-   constant NUM_AXIL0_MASTERS_C : integer := 3;
+   constant CORE_I2C_C        : boolean := false;
+   constant NUM_AXIL0_MASTERS_C : integer := ite(CORE_I2C_C,3,4);
    signal mAxil0ReadMasters  : AxiLiteReadMasterArray (NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_MASTER_INIT_C);
    signal mAxil0ReadSlaves   : AxiLiteReadSlaveArray  (NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_SLAVE_EMPTY_OK_C);
    signal mAxil0WriteMasters : AxiLiteWriteMasterArray(NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_MASTER_INIT_C);
@@ -279,11 +281,8 @@ architecture top_level of DrpTDet is
    
 begin
 
-  i2cRstL        <= '1';
   qsfpModPrsL(0) <= qsfp0ModPrsL;
   qsfpModPrsL(1) <= qsfp1ModPrsL;
-  qsfp0ModSelL   <= '0';  -- enable I2C
-  qsfp1ModSelL   <= '0';  -- enable I2C
 
   --
   --  Use MGTREFCLK1 (non-programmable) for 156.25 MHz base clock
@@ -394,19 +393,19 @@ begin
   mtpAxilWriteMasters(1) <= mAxil1WriteMasters(MIGTPCI_INDEX_C);
   mAxil1ReadSlaves (MIGTPCI_INDEX_C) <= mtpAxilReadSlaves (1);
   mAxil1WriteSlaves(MIGTPCI_INDEX_C) <= mtpAxilWriteSlaves(1);
-                    
-  -- U_I2C : entity surf.AxiI2cRegMaster
-  --   generic map ( DEVICE_MAP_G   => DEVICE_MAP_C,
-  --                 AXI_CLK_FREQ_G => 125.0E+6 )
-  --   port map ( scl            => i2cScl,
-  --              sda            => i2cSda,
-  --              axiReadMaster  => mAxil0ReadMasters (I2C_INDEX_C),
-  --              axiReadSlave   => mAxil0ReadSlaves  (I2C_INDEX_C),
-  --              axiWriteMaster => mAxil0WriteMasters(I2C_INDEX_C),
-  --              axiWriteSlave  => mAxil0WriteSlaves (I2C_INDEX_C),
-  --              axiClk         => axilClks(0),
-  --              axiRst         => axilRsts(0) );
 
+  U_I2C : entity surf.AxiI2cRegMaster
+    generic map ( DEVICE_MAP_G   => DEVICE_MAP_C,
+                  AXI_CLK_FREQ_G => 125.0E+6 )
+    port map ( scl            => i2cScl,
+               sda            => i2cSda,
+               axiReadMaster  => mAxil0ReadMasters (I2C_INDEX_C),
+               axiReadSlave   => mAxil0ReadSlaves  (I2C_INDEX_C),
+               axiWriteMaster => mAxil0WriteMasters(I2C_INDEX_C),
+               axiWriteSlave  => mAxil0WriteSlaves (I2C_INDEX_C),
+               axiClk         => axilClks(0),
+               axiRst         => axilRsts(0) );
+  
   U_Timing : entity work.TDetTiming
     generic map ( NDET_G          => 8,
                   AXIL_BASEADDR_G => AXIL0_CROSSBAR_MASTERS_CONFIG_C(TDETTIM_INDEX_C).baseAddr )
@@ -626,20 +625,21 @@ begin
       emcClk          => emcClk,
       userClkP        => userClkP,
       userClkN        => userClkN,
+      --  Pass unmapped I2c bus
       i2cRstL         => i2cRstL,
-      i2cScl          => i2cScl,
-      i2cSda          => i2cSda,
+      i2cScl          => noi2cScl,
+      i2cSda          => noi2cSda,
 --      swDip           => swDip,
 --      led             => led,
       -- QSFP[0] Ports
       qsfp0RstL       => qsfp0RstL   ,
       qsfp0LpMode     => qsfp0LpMode ,
-      qsfp0ModSelL    => open,
+      qsfp0ModSelL    => qsfp0ModSelL,
       qsfp0ModPrsL    => qsfp0ModPrsL,
       -- QSFP[1] Ports
       qsfp1RstL       => qsfp1RstL   ,
       qsfp1LpMode     => qsfp1LpMode ,
-      qsfp1ModSelL    => open,
+      qsfp1ModSelL    => qsfp1ModSelL,
       qsfp1ModPrsL    => qsfp1ModPrsL,
       -- Boot Memory Ports 
       flashCsL        => flashCsL  ,
