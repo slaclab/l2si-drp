@@ -1,12 +1,3 @@
-# Define Firmware Version Number
-#  PRJ_VERSION = 0x00000000 - original with XVC
-#  PRJ_VERSION = 0x00000001 - no XVC
-#  PRJ_VERSION = 0x00000004 - Use programmable clock for PGP reference at 185.7 MHz
-#  PRJ_VERSION = 0x00000005 - Rebuilt with l2si-core/lcls-timingcore refactor
-#  PRJ_VERSION = 0x00000006 - Test interrupt holdoff register
-#  PRJ_VERSION = 0x01010000 - Rebuild for release
-export PRJ_VERSION = 0x03060000
-
 # Define the Hardware Type in the axi-pcie-core
 export PCIE_HW_TYPE = XilinxKcu1500
 
@@ -33,4 +24,5 @@ export TIMING_EXT_PKG = 1
 target: prom
 
 # Use top level makefile
-include ../../submodules/ruckus/system_vivado.mk
+include $(TOP_DIR)/targets/shared_config.mk
+include $(TOP_DIR)/submodules/ruckus/system_vivado.mk

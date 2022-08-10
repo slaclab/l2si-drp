@@ -1,19 +1,5 @@
 #export GIT_BYPASS = 1
-export OVERRIDE_SUBMODULE_LOCKS = 1
-
-# Define Firmware Version Number
-#  PRJ_VERSION = 0x00000000 - original with XVC
-#  PRJ_VERSION = 0x00000001 - no XVC
-#  PRJ_VERSION = 0x00000002 - upgrade to surf[master], axi-pcie-core[master]
-#  PRJ_VERSION = 0x00000003 - Upgrade l2si-core for XPM changes
-#  PRJ_VERSION = 0x00000004 - Rearrange event header
-#  PRJ_VERSION = 0x00000005 - Rebuild with EventHeaderCacheWrapper
-#  PRJ_VERSION = 0x00000006 - Put EventHeaderCache into full path, latch RTT
-#  PRJ_VERSION = 0x00000007 - Try axi-xbar-dev
-#  PRJ_VERSION = 0x00000008 - Upgrade l2si-core in attempt to fix off by one pulseid
-#  PRJ_VERSION = 0x00000009 - Fix ExtendedCore AxiLite access to TDetTiming.  Add holdoff register.
-#  PRJ_VERSION = 0x0305000a - Upgrade for timing core modesel/clksel options
-export PRJ_VERSION = 0x03060000
+#export OVERRIDE_SUBMODULE_LOCKS = 1
 
 # Define the Hardware Type in the axi-pcie-core
 export PCIE_HW_TYPE = XilinxKcu1500
@@ -41,4 +27,5 @@ export TIMING_EXT_PKG = 1
 target: prom
 
 # Use top level makefile
-include ../../submodules/ruckus/system_vivado.mk
+include $(TOP_DIR)/targets/shared_config.mk
+include $(TOP_DIR)/submodules/ruckus/system_vivado.mk
