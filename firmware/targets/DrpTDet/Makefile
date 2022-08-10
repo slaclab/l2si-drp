@@ -27,5 +27,5 @@ export TIMING_EXT_PKG = 1
 target: prom
 
 # Use top level makefile
-include $(TOP_DIR)/targets/shared_config.mk
-include $(TOP_DIR)/submodules/ruckus/system_vivado.mk
+include ../../targets/shared_config.mk
+include ../../submodules/ruckus/system_vivado.mk
