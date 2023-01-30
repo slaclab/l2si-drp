@@ -5,7 +5,7 @@
 -- Author     : Matt Weaver <weaver@slac.stanford.edu>
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2015-07-08
--- Last update: 2021-04-02
+-- Last update: 2023-01-30
 -- Platform   : 
 -- Standard   : VHDL'93/02
 -------------------------------------------------------------------------------
@@ -57,10 +57,13 @@ entity TDetTiming is
       ----------------t----------------------------
       tdetClk          : in  sl;
       tdetRst          : in  sl := '0';
-      tdetAlmostFull   : in  slv                 (NDET_G-1 downto 0);
-      tdetTimingMsgs   : out TimingMessageArray(NDET_G-1 downto 0);
-      tdetAxisMaster   : out AxiStreamMasterArray(NDET_G-1 downto 0);
-      tdetAxisSlave    : in  AxiStreamSlaveArray (NDET_G-1 downto 0);
+      tdetAlmostFull   : in  slv                      (NDET_G-1 downto 0);
+      tdetTimingMsgs   : out TimingMessageArray       (NDET_G-1 downto 0);
+      tdetTimingRds    : in  slv                      (NDET_G-1 downto 0);
+      tdetInhibitCts   : out TriggerInhibitCountsArray(NDET_G-1 downto 0);
+      tdetInhibitRds   : in  slv                      (NDET_G-1 downto 0);
+      tdetAxisMaster   : out AxiStreamMasterArray     (NDET_G-1 downto 0);
+      tdetAxisSlave    : in  AxiStreamSlaveArray      (NDET_G-1 downto 0);
       ----------------
       -- Core Ports --
       ----------------   
@@ -252,6 +255,7 @@ begin
       generic map (
         NUM_DETECTORS_G                => NDET_G,
         AXIL_BASE_ADDR_G               => AXIL_MASTERS_CONFIG_C(2).baseAddr,
+        EN_LCLS_II_INHIBIT_COUNTS_G    => true,
         EVENT_AXIS_CONFIG_G            => TDET_AXIS_CONFIG_C,
         TRIGGER_CLK_IS_TIMING_RX_CLK_G => true )
       port map (
@@ -267,7 +271,10 @@ begin
          triggerData      => triggerData,
          eventClk         => tdetClk,
          eventRst         => tdetRst,
-         eventTimingMessages => tdetTimingMsgs,
+         eventTimingMessages   => tdetTimingMsgs,
+         eventTimingMessagesRd => tdetTimingRds,
+         eventInhibitCounts    => tdetInhibitCts,
+         eventInhibitCountsRd  => tdetInhibitRds,
          eventAxisMasters => tdetAxisMaster,
          eventAxisSlaves  => tdetAxisSlave,
          eventAxisCtrl    => tdetAxisCtrl,

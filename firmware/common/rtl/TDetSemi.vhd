@@ -2,7 +2,7 @@
 -- File       : TDetSemi.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-02-26
+-- Last update: 2023-01-30
 -------------------------------------------------------------------------------
 -- Description: TDetSemi File
 -------------------------------------------------------------------------------
@@ -35,6 +35,7 @@ use lcls_timing_core.TimingPkg.all;
 
 library l2si_core;
 use l2si_core.L2SiPkg.all;
+use l2si_core.XpmExtensionPkg.all;
 
 library unisim;
 use unisim.vcomponents.all;
@@ -70,10 +71,13 @@ entity TDetSemi is
     ---------------------
     tdetClk         : in  sl;
     tdetClkRst      : in  sl;
-    tdetTimingMsgs  : in  TimingMessageArray  (NUM_LANES_G-1 downto 0);
-    tdetAxisMaster  : in  AxiStreamMasterArray(NUM_LANES_G-1 downto 0);
-    tdetAxisSlave   : out AxiStreamSlaveArray (NUM_LANES_G-1 downto 0);
-    tdetAlmostFull  : out slv                 (NUM_LANES_G-1 downto 0);
+    tdetTimingMsgs  : in  TimingMessageArray       (NUM_LANES_G-1 downto 0);
+    tdetTimingRds   : out slv                      (NUM_LANES_G-1 downto 0);
+    tdetInhibitCts  : in  TriggerInhibitCountsArray(NUM_LANES_G-1 downto 0);
+    tdetInhibitRds  : out slv                      (NUM_LANES_G-1 downto 0);
+    tdetAxisMaster  : in  AxiStreamMasterArray     (NUM_LANES_G-1 downto 0);
+    tdetAxisSlave   : out AxiStreamSlaveArray      (NUM_LANES_G-1 downto 0);
+    tdetAlmostFull  : out slv                      (NUM_LANES_G-1 downto 0);
     modPrsL         : in  sl );
 end TDetSemi;
 
@@ -129,7 +133,8 @@ architecture mapping of TDetSemi is
     length      : slv(22 downto 0);
     count       : slv(31 downto 0);
     event       : sl;
-    userrd      : sl;
+    timingMsgRd : sl;
+    inhibitCtRd : sl;
     user        : slv(TDET_USER_BITS_C-1 downto 0);
     axisSlave  : AxiStreamSlaveType;
     txMaster    : AxiStreamMasterType;
@@ -140,7 +145,8 @@ architecture mapping of TDetSemi is
     length      => (others=>'0'),
     count       => (others=>'0'),
     event       => '0',
-    userrd      => '0',
+    timingMsgRd => '0',
+    inhibitCtRd => '0',
     user        => (others=>'0'),
     axisSlave   => AXI_STREAM_SLAVE_INIT_C,
     txMaster    => AXI_STREAM_MASTER_INIT_C );
@@ -163,8 +169,10 @@ architecture mapping of TDetSemi is
   --
   --  Format the data for software (psana) consumption
   --
-  function toSlvFormatted(msg : TimingMessageType) return slv is
-    variable v : slv(967 downto 0) := (others=>'0');
+  constant TIMING_MSG_FORMAT_LEN_C : integer := 968+XPM_INHIBIT_COUNTS_LEN_C;
+  function toSlvFormatted(msg : TimingMessageType;
+                          inh : TriggerInhibitCountsType) return slv is
+    variable v : slv(TIMING_MSG_FORMAT_LEN_C-1 downto 0) := (others=>'0');
     variable i : integer := 0;
   begin
     assignSlv(i, v, msg.pulseId);                             -- [63:0]
@@ -196,6 +204,7 @@ architecture mapping of TDetSemi is
     for j in msg.control'range loop                           -- [967:680]
       assignSlv(i, v, msg.control(j));
     end loop;
+    assignSlv(i, v, toSlv(inh));
     return v;
   end function;
   
@@ -285,7 +294,7 @@ begin
     port map ( clk => tdetClk, dataIn => a.enable, dataOut => as.enable );
   
 --  comb : process ( r, tdetClkRst, tdetEventMaster, tdetTransMaster, strigBus, as, dmaIbSlaves ) is
-  comb : process ( r, tdetClkRst, tdetAxisMaster, tdetTimingMsgs, as, dmaIbSlaves ) is
+  comb : process ( r, tdetClkRst, tdetAxisMaster, tdetTimingMsgs, tdetInhibitCts, as, dmaIbSlaves ) is
     variable v : RegType;
     variable i,j : integer;
     constant DATALEN : integer := PGP3_AXIS_CONFIG_C.TDATA_BYTES_C*8;
@@ -293,7 +302,8 @@ begin
     for i in 0 to NUM_LANES_G-1 loop
       v := r(i);
       v.axisSlave.tReady  := '0';
-      v.userrd            := '0';
+      v.timingMsgRd       := '0';
+      v.inhibitCtRd       := '0';
       
       if dmaIbSlaves(i).tReady = '1' then
         v.txMaster.tValid := '0';
@@ -347,14 +357,24 @@ begin
                 -- Workaround for small payload DMA problem;  pad to 256 bytes
                 v.length          := toSlv(2048,r(i).length'length);
                 -- v.length          := resize(strigBus(i).userlen,r(i).length'length);
-                v.user(toSlvFormatted(TIMING_MESSAGE_INIT_C)'range)
-                  := toSlvFormatted(tdetTimingMsgs(i));
-                v.userrd          := '1';  -- now signaled by v.axisSlave
+                v.user(toSlvFormatted(TIMING_MESSAGE_INIT_C,tdetInhibitCts(i))'range)
+                  := toSlvFormatted(tdetTimingMsgs(i),tdetInhibitCts(i));
+                v.timingMsgRd     := '1';
+                v.inhibitCtRd     := '1';
                 v.state           := USER_S;
               else
                 v.length          := as.length(i);
                 v.state           := SEND_S;
               end if;
+            elsif as.length(i) = 0 then
+              v.txMaster.tLast    := '0';
+              -- Workaround for small payload DMA problem;  pad to 256 bytes
+              v.length          := toSlv(2048,r(i).length'length);
+              -- v.length          := resize(strigBus(i).userlen,r(i).length'length);
+              v.user(toSlv(tdetInhibitCts(i))'range)
+                := toSlv(tdetInhibitCts(i));
+              v.inhibitCtRd     := '1';
+              v.state           := USER_S;
             else
               v.txMaster.tLast    := '1';
               v.state             := WAIT_S;
@@ -404,7 +424,9 @@ begin
         when others => null;
       end case;
 
-      tdetAxisSlave (i)         <= v.axisSlave;
+      tdetAxisSlave  (i) <= v.axisSlave;
+      tdetTimingRds  (i) <= r(i).timingMsgRd;
+      tdetInhibitRds (i) <= r(i).inhibitCtRd;
 
       if tdetClkRst = '1' or as.clear(i) = '1' then
         v := REG_INIT_C;

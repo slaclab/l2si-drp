@@ -2,7 +2,7 @@
 -- File       : DrpTDet.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-24
--- Last update: 2022-02-09
+-- Last update: 2023-01-30
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -230,9 +230,12 @@ architecture top_level of DrpTDet is
    signal tdetClk    : sl;
    signal tdetRst    : sl;
    signal tdetAlmostFull : slv(NDET_C-1 downto 0);
-   signal tdetTimingMsgs : TimingMessageArray(NDET_C-1 downto 0);
-   signal tdetAxisM      : AxiStreamMasterArray (NDET_C-1 downto 0);
-   signal tdetAxisS      : AxiStreamSlaveArray  (NDET_C-1 downto 0);
+   signal tdetTimingMsgs : TimingMessageArray       (NDET_C-1 downto 0);
+   signal tdetTimingRds  : slv                      (NDET_C-1 downto 0);
+   signal tdetInhibitCts : TriggerInhibitCountsArray(NDET_C-1 downto 0);
+   signal tdetInhibitRds : slv                      (NDET_C-1 downto 0);
+   signal tdetAxisM      : AxiStreamMasterArray     (NDET_C-1 downto 0);
+   signal tdetAxisS      : AxiStreamSlaveArray      (NDET_C-1 downto 0);
    signal timingRefClk : sl;
    signal userRefClock : sl;
    
@@ -420,6 +423,9 @@ begin
       tdetClk          => tdetClk   ,
       tdetAlmostFull   => tdetAlmostFull,
       tdetTimingMsgs   => tdetTimingMsgs,
+      tdetTimingRds    => tdetTimingRds,
+      tdetInhibitCts   => tdetInhibitCts,
+      tdetInhibitRds   => tdetInhibitRds,
       tdetAxisMaster   => tdetAxisM ,
       tdetAxisSlave    => tdetAxisS ,
       -- Timing Phy Ports
@@ -495,6 +501,9 @@ begin
         tdetClkRst      => tdetRst,
         tdetAlmostFull  => tdetAlmostFull(4*i+3 downto 4*i),
         tdetTimingMsgs  => tdetTimingMsgs(4*i+3 downto 4*i),
+        tdetTimingRds   => tdetTimingRds (4*i+3 downto 4*i),
+        tdetInhibitCts  => tdetInhibitCts(4*i+3 downto 4*i),
+        tdetInhibitRds  => tdetInhibitRds(4*i+3 downto 4*i),
         tdetAxisMaster  => tdetAxisM (4*i+3 downto 4*i),
         tdetAxisSlave   => tdetAxisS (4*i+3 downto 4*i),
         modPrsL         => qsfpModPrsL(i) );
