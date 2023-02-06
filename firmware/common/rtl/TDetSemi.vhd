@@ -2,7 +2,7 @@
 -- File       : TDetSemi.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2023-01-30
+-- Last update: 2023-02-06
 -------------------------------------------------------------------------------
 -- Description: TDetSemi File
 -------------------------------------------------------------------------------
@@ -177,10 +177,10 @@ architecture mapping of TDetSemi is
   begin
     assignSlv(i, v, msg.pulseId);                             -- [63:0]
     assignSlv(i, v, msg.timeStamp);                           -- [127:64]
-    for j in msg.fixedRates'range loop                        -- [207:128]
+    for j in 0 to msg.fixedRates'length-1 loop                -- [207:128]
       assignSlv(i, v, "0000000" & msg.fixedRates(j));
     end loop;
-    for j in msg.acRates'range loop                           -- [255:208]
+    for j in 0 to msg.acRates'length-1 loop                   -- [255:208]
       assignSlv(i, v, "0000000" & msg.acRates(j));
     end loop;
     assignSlv(i, v, resize(msg.acTimeSlot,8));                   -- [263:256]
