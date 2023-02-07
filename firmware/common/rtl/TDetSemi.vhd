@@ -2,7 +2,7 @@
 -- File       : TDetSemi.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2023-02-06
+-- Last update: 2023-02-07
 -------------------------------------------------------------------------------
 -- Description: TDetSemi File
 -------------------------------------------------------------------------------
@@ -136,6 +136,7 @@ architecture mapping of TDetSemi is
     timingMsgRd : sl;
     inhibitCtRd : sl;
     user        : slv(TDET_USER_BITS_C-1 downto 0);
+    transHeader : slv(6 downto 0);
     axisSlave  : AxiStreamSlaveType;
     txMaster    : AxiStreamMasterType;
   end record;
@@ -148,6 +149,7 @@ architecture mapping of TDetSemi is
     timingMsgRd => '0',
     inhibitCtRd => '0',
     user        => (others=>'0'),
+    transHeader => (others=>'0'),
     axisSlave   => AXI_STREAM_SLAVE_INIT_C,
     txMaster    => AXI_STREAM_MASTER_INIT_C );
 
@@ -367,7 +369,7 @@ begin
                 v.length          := as.length(i);
                 v.state           := SEND_S;
               end if;
-            elsif as.length(i) = 0 and r.transHeader/=toSlv(10,7) then
+            elsif as.length(i) = 0 and r(i).transHeader/=toSlv(10,7) then
               -- slowupdate carries no payload
               v.txMaster.tLast    := '0';
               -- Workaround for small payload DMA problem;  pad to 256 bytes
