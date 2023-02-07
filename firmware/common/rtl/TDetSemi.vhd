@@ -326,6 +326,7 @@ begin
               v.txMaster.tLast  := '0';
               v.txMaster.tKeep  := genTKeep(PGP3_AXIS_CONFIG_C);
               v.txMaster.tData(63 downto 0) := tdetAxisMaster(i).tData(63 downto 0);
+              v.transHeader     := tdetAxisMaster(i).tData(62 downto 56);
             end if;
           end if;
         when HDR1_S =>
@@ -366,7 +367,8 @@ begin
                 v.length          := as.length(i);
                 v.state           := SEND_S;
               end if;
-            elsif as.length(i) = 0 then
+            elsif as.length(i) = 0 and r.transHeader/=toSlv(10,7) then
+              -- slowupdate carries no payload
               v.txMaster.tLast    := '0';
               -- Workaround for small payload DMA problem;  pad to 256 bytes
               v.length          := toSlv(2048,r(i).length'length);
