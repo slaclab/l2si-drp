@@ -5,7 +5,7 @@
 -- Author     : Matt Weaver <weaver@slac.stanford.edu>
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2015-07-08
--- Last update: 2023-01-30
+-- Last update: 2023-07-19
 -- Platform   : 
 -- Standard   : VHDL'93/02
 -------------------------------------------------------------------------------
@@ -104,14 +104,18 @@ architecture mapping of TDetTiming is
    signal txUsrClk       : sl;
    signal txUsrRst       : sl;
    signal txOutClk       : sl;
-   signal loopback       : slv(2 downto 0);
+   signal loopback       : slv(31 downto 0);
    signal fbTx           : TimingPhyType;
    signal timingPhy      : TimingPhyType;
    signal timingBus      : TimingBusType;
    signal timingMode     : sl;
    signal tdetAxisCtrl   : AxiStreamCtrlArray(NDET_G-1 downto 0);
-   
-   constant NUM_AXI_MASTERS_C : integer := 3;
+
+   constant TIMING_CO_INDEX_C : integer := 0;
+   constant TIMING_GT_INDEX_C : integer := 1;
+   constant TEM_INDEX_C       : integer := 2;
+   constant TDET_TIM_INDEX_C  : integer := 3;
+   constant NUM_AXI_MASTERS_C : integer := 4;
    constant AXIL_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXI_MASTERS_C-1 downto 0) := genAxiLiteConfig( NUM_AXI_MASTERS_C, AXIL_BASEADDR_G, 21, 16);
    signal axilReadMasters  : AxiLiteReadMasterArray (NUM_AXI_MASTERS_C-1 downto 0);
    signal axilReadSlaves   : AxiLiteReadSlaveArray  (NUM_AXI_MASTERS_C-1 downto 0);
@@ -183,10 +187,10 @@ begin
        port map (
          axilClk        => axilClk,
          axilRst        => axilRst,
-         axilReadMaster => axilReadMasters (1),
-         axilReadSlave  => axilReadSlaves  (1),
-         axilWriteMaster=> axilWriteMasters(1),
-         axilWriteSlave => axilWriteSlaves (1),
+         axilReadMaster => axilReadMasters (TIMING_GT_INDEX_C),
+         axilReadSlave  => axilReadSlaves  (TIMING_GT_INDEX_C),
+         axilWriteMaster=> axilWriteMasters(TIMING_GT_INDEX_C),
+         axilWriteSlave => axilWriteSlaves (TIMING_GT_INDEX_C),
          stableClk      => axilClk,
          stableRst      => axilRst,
          gtRefClk       => timingRefClk,
@@ -212,7 +216,7 @@ begin
          txData         => timingPhy.data,
          txDataK        => timingPhy.dataK,
          txOutClk       => txUsrClk,
-         loopback       => loopback);
+         loopback       => loopback(2 downto 0));
 
    txUsrRst         <= not (txStatus.resetDone);
    rxRst            <= not (rxStatus.resetDone);
@@ -234,7 +238,7 @@ begin
          gtRxDecErr      => rxDecErr,
          gtRxControl     => rxControl,
          gtRxStatus      => rxStatus,
-         gtLoopback      => loopback,
+         gtLoopback      => open, -- TPGMINI
          appTimingClk    => rxOutClk,
          appTimingRst    => rxRst,
          appTimingBus    => timingBus,
@@ -242,10 +246,10 @@ begin
          tpgMiniTimingPhy=> open, -- TPGMINI
          axilClk         => axilClk,
          axilRst         => axilRst,
-         axilReadMaster  => axilReadMasters (0),
-         axilReadSlave   => axilReadSlaves  (0),
-         axilWriteMaster => axilWriteMasters(0),
-         axilWriteSlave  => axilWriteSlaves (0) );
+         axilReadMaster  => axilReadMasters (TIMING_CO_INDEX_C),
+         axilReadSlave   => axilReadSlaves  (TIMING_CO_INDEX_C),
+         axilWriteMaster => axilWriteMasters(TIMING_CO_INDEX_C),
+         axilWriteSlave  => axilWriteSlaves (TIMING_CO_INDEX_C) );
 
    timingPhy.data    <= fbTx.data;
    timingPhy.dataK   <= fbTx.dataK;
@@ -254,7 +258,7 @@ begin
    U_TEM : entity l2si_core.TriggerEventManager
       generic map (
         NUM_DETECTORS_G                => NDET_G,
-        AXIL_BASE_ADDR_G               => AXIL_MASTERS_CONFIG_C(2).baseAddr,
+        AXIL_BASE_ADDR_G               => AXIL_MASTERS_CONFIG_C(TEM_INDEX_C).baseAddr,
         EN_LCLS_II_INHIBIT_COUNTS_G    => true,
         EVENT_AXIS_CONFIG_G            => TDET_AXIS_CONFIG_C,
         TRIGGER_CLK_IS_TIMING_RX_CLK_G => true )
@@ -280,11 +284,23 @@ begin
          eventAxisCtrl    => tdetAxisCtrl,
          axilClk          => axilClk,
          axilRst          => axilRst,
-         axilReadMaster   => axilReadMasters (2),
-         axilReadSlave    => axilReadSlaves  (2),
-         axilWriteMaster  => axilWriteMasters(2),
-         axilWriteSlave   => axilWriteSlaves (2) );
+         axilReadMaster   => axilReadMasters (TEM_INDEX_C),
+         axilReadSlave    => axilReadSlaves  (TEM_INDEX_C),
+         axilWriteMaster  => axilWriteMasters(TEM_INDEX_C),
+         axilWriteSlave   => axilWriteSlaves (TEM_INDEX_C) );
 
+   U_TDET_TIM_AXI : entity surf.AxiLiteRegs
+     port map (
+       axiClk           => axilClk,
+       axiClkRst        => axilRst,
+       axiReadMaster    => axilReadMasters (TDET_TIM_INDEX_C),
+       axiReadSlave     => axilReadSlaves  (TDET_TIM_INDEX_C),
+       axiWriteMaster   => axilWriteMasters(TDET_TIM_INDEX_C),
+       axiWriteSlave    => axilWriteSlaves (TDET_TIM_INDEX_C),
+       writeRegister(0) => loopback,
+       readRegister (0) => x"DEADFACE" );
+       
+     
    GEN_DET : for i in 0 to NDET_G-1 generate
       tdetAxisCtrl(i).pause    <= tdetAlmostFull(i);
       tdetAxisCtrl(i).overflow <= '0';
