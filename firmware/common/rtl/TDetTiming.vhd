@@ -5,7 +5,7 @@
 -- Author     : Matt Weaver <weaver@slac.stanford.edu>
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2015-07-08
--- Last update: 2023-07-19
+-- Last update: 2023-07-20
 -- Platform   : 
 -- Standard   : VHDL'93/02
 -------------------------------------------------------------------------------
@@ -183,7 +183,10 @@ begin
      TimingGthCoreWrapper_1 : entity lcls_timing_core.TimingGtCoreWrapper
        generic map ( TPD_G            => TPD_G,
                      EXTREF_G         => true,
-                     AXIL_BASE_ADDR_G => AXIL_MASTERS_CONFIG_C(1).baseAddr )
+                     AXIL_BASE_ADDR_G => AXIL_MASTERS_CONFIG_C(1).baseAddr,
+                     ADDR_BITS_G      => 12,
+                     GTH_DRP_OFFSET_G => x"00008000"
+                     )
        port map (
          axilClk        => axilClk,
          axilRst        => axilRst,
@@ -290,6 +293,9 @@ begin
          axilWriteSlave   => axilWriteSlaves (TEM_INDEX_C) );
 
    U_TDET_TIM_AXI : entity surf.AxiLiteRegs
+     generic map (
+       INI_WRITE_REG_G   => (0 => x"0000_0002")
+     )
      port map (
        axiClk           => axilClk,
        axiClkRst        => axilRst,
@@ -298,7 +304,7 @@ begin
        axiWriteMaster   => axilWriteMasters(TDET_TIM_INDEX_C),
        axiWriteSlave    => axilWriteSlaves (TDET_TIM_INDEX_C),
        writeRegister(0) => loopback,
-       readRegister (0) => x"DEADFACE" );
+       readRegister (0) => x"FACEFACE" );
        
      
    GEN_DET : for i in 0 to NDET_G-1 generate
