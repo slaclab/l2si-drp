@@ -5,7 +5,7 @@
 -- Author     : Matt Weaver <weaver@slac.stanford.edu>
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2015-07-08
--- Last update: 2023-07-20
+-- Last update: 2024-01-29
 -- Platform   : 
 -- Standard   : VHDL'93/02
 -------------------------------------------------------------------------------
@@ -294,7 +294,7 @@ begin
 
    U_TDET_TIM_AXI : entity surf.AxiLiteRegs
      generic map (
-       INI_WRITE_REG_G   => (0 => x"0000_0002")
+       INI_WRITE_REG_G   => (0 => x"0000_0000")
      )
      port map (
        axiClk           => axilClk,
