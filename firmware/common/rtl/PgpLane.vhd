@@ -2,7 +2,7 @@
 -- File       : PgpLane.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-26
--- Last update: 2020-08-18
+-- Last update: 2024-02-05
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -119,6 +119,7 @@ begin
 --         RATE_G            => ite(REFCLK_SELECT_G = "156M", "10.3125Gbps", "10.3Gbps"),
          RATE_G            => RATE_G,
          NUM_VC_G          => NUM_VC_G,
+         EN_DRP_G          => true,
          EN_PGP_MON_G      => true,
          AXIL_CLK_FREQ_G   => AXIL_CLK_FREQ_G,
          AXIL_BASE_ADDR_G  => AXI_BASE_ADDR_G+x"0000_8000" ) 
