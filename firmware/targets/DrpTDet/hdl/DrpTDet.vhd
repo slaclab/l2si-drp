@@ -189,10 +189,10 @@ architecture top_level of DrpTDet is
       2                  => (baseAddr => x"00C00000",
             addrBits     => 21,
             connectivity => x"FFFF"),
-      3                  => (baseAddr => x"00E00000",
-            addrBits     => 21,
+      3                  => (baseAddr => x"00D00000",
+            addrBits     => 20,
             connectivity => x"FFFF"),
-      4                  => (baseAddr => x"01000000",
+      4                  => (baseAddr => x"00E00000",
             addrBits     => 21,
             connectivity => x"FFFF"));
    constant AXIL1_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL1_MASTERS_C-1 downto 0) := (
