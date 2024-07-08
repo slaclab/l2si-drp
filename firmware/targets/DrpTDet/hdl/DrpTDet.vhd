@@ -27,6 +27,7 @@ use surf.AxiStreamPkg.all;
 use surf.AxiDmaPkg.all;
 use surf.I2cPkg.all;
 use surf.Pgp3Pkg.all;
+use surf.SsiPkg.all;
 
 library axi_pcie_core;
 use axi_pcie_core.AxiPciePkg.all;
@@ -46,6 +47,7 @@ use unisim.vcomponents.all;
 entity DrpTDet is
    generic (
       TPD_G        : time := 1 ns;
+      DMA_AXIS_CONFIG_G : AxiStreamConfigType := ssiAxiStreamConfig(dataBytes => 16, tDestBits => 8, tIdBits => 3);  --- 16 Byte (128-bit) tData interface
       BUILD_INFO_G : BuildInfoType);
    port (
       ---------------------
@@ -614,7 +616,7 @@ begin
       generic map (
          TPD_G             => TPD_G,
          MAX_BUFFERS_G     => 4,
-         DMA_AXIS_CONFIG_G => AxiStreamConfigType
+         DMA_AXIS_CONFIG_G => DMA_AXIS_CONFIG_G
          )
       port map (
          axilClk         => axilClks (0),
@@ -658,15 +660,15 @@ begin
          dmaClk                            => sysClks(0),
          dmaRst                            => sysRsts(0),
          -- DMA Interfaces
-         dmaObMasters (5*0+4 downto 5*0+1) => dmaObMasters (5*0+4 downto 5*0+1),
-         dmaObSlaves (5*0+4 downto 5*0+1)  => dmaObSlaves (5*0+4 downto 5*0+1),
-         dmaIbMasters (5*0+4 downto 5*0+1) => dmaIbMasters (5*0+4 downto 5*0+1),
-         dmaIbSlaves (5*0+4 downto 5*0+1)  => dmaIbSlaves (5*0+4 downto 5*0+1),
-         --
          dmaObMasters (0)                  => dmaObMasters (0),
          dmaObSlaves (0)                   => dmaObSlaves (0),
          dmaIbMasters (0)                  => bypassMaster,
          dmaIbSlaves (0)                   => bypassSlave,
+         --
+         dmaObMasters (5*0+4 downto 5*0+1) => dmaObMasters (5*0+4 downto 5*0+1),
+         dmaObSlaves (5*0+4 downto 5*0+1)  => dmaObSlaves (5*0+4 downto 5*0+1),
+         dmaIbMasters (5*0+4 downto 5*0+1) => dmaIbMasters (5*0+4 downto 5*0+1),
+         dmaIbSlaves (5*0+4 downto 5*0+1)  => dmaIbSlaves (5*0+4 downto 5*0+1),
          -- User General Purpose AXI4 Interfaces (dmaClk domain)
          usrReadMaster                     => usrReadMaster,
          usrReadSlave                      => usrReadSlave,
