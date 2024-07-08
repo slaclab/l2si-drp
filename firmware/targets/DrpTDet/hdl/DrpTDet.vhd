@@ -141,6 +141,9 @@ architecture top_level of DrpTDet is
    signal usrWriteMaster : AxiWriteMasterType;
    signal usrWriteSlave  : AxiWriteSlaveType;
 
+   signal bypassMaster : AxiStreamMasterType;
+   signal bypassSlave  : AxiStreamSlaveType;
+
    signal hwClks         : slv (7 downto 0);
    signal hwRsts         : slv (7 downto 0);
    signal hwObMasters    : AxiStreamMasterArray(7 downto 0);
@@ -626,8 +629,8 @@ begin
          sAxisSlave      => dmaIbSlaves (0),
          mAxisMaster     => open,
          mAxisSlave      => AXI_STREAM_SLAVE_FORCE_C,
-         bypassMaster    => open,
-         bypassSlave     => AXI_STREAM_SLAVE_FORCE_C,
+         bypassMaster    => bypassMaster,
+         bypassSlave     => bypassSlave,
          -- AXI4 Interfaces (axiClk domain)
          axiClk          => sysClks(0),
          axiRst          => sysRsts(0),
@@ -662,8 +665,8 @@ begin
          --
          dmaObMasters (0)                  => dmaObMasters (0),
          dmaObSlaves (0)                   => dmaObSlaves (0),
-         dmaIbMasters (0)                  => open,
-         dmaIbSlaves (0)                   => AXI_STREAM_SLAVE_FORCE_C,
+         dmaIbMasters (0)                  => bypassMaster,
+         dmaIbSlaves (0)                   => bypassSlave,
          -- User General Purpose AXI4 Interfaces (dmaClk domain)
          usrReadMaster                     => usrReadMaster,
          usrReadSlave                      => usrReadSlave,
