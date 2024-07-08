@@ -137,14 +137,13 @@ architecture top_level of DrpTDet is
    signal dmaObSlaves  : AxiStreamSlaveArray (9 downto 0);
    signal dmaIbMasters : AxiStreamMasterArray (9 downto 0);
    signal dmaIbSlaves  : AxiStreamSlaveArray (9 downto 0);
+   signal cpuIbMasters : AxiStreamMasterArray (9 downto 0);
+   signal cpuIbSlaves  : AxiStreamSlaveArray (9 downto 0);
 
    signal usrReadMaster  : AxiReadMasterType;
    signal usrReadSlave   : AxiReadSlaveType;
    signal usrWriteMaster : AxiWriteMasterType;
    signal usrWriteSlave  : AxiWriteSlaveType;
-
-   signal bypassMaster : AxiStreamMasterType;
-   signal bypassSlave  : AxiStreamSlaveType;
 
    signal hwClks         : slv (7 downto 0);
    signal hwRsts         : slv (7 downto 0);
@@ -611,7 +610,7 @@ begin
                mAxisSlave  => dmaIbSlaves (j));
       end generate;
    end generate;
-
+   
    AxiPcieGpuAsyncCore_inst : entity axi_pcie_core.AxiPcieGpuAsyncCore
       generic map (
          TPD_G             => TPD_G,
@@ -631,8 +630,8 @@ begin
          sAxisSlave      => dmaIbSlaves (0),
          mAxisMaster     => open,
          mAxisSlave      => AXI_STREAM_SLAVE_FORCE_C,
-         bypassMaster    => bypassMaster,
-         bypassSlave     => bypassSlave,
+         bypassMaster    => cpuIbMasters(0),
+         bypassSlave     => cpuIbSlaves(0),
          -- AXI4 Interfaces (axiClk domain)
          axiClk          => sysClks(0),
          axiRst          => sysRsts(0),
@@ -641,7 +640,10 @@ begin
          axiReadMaster   => usrReadMaster,
          axiReadSlave    => usrReadSlave
          );
-
+         
+    cpuIbMasters(4 downto 1) <= dmaIbMasters(4 downto 1);     
+    dmaIbSlaves(4 downto 1)  <= cpuIbSlaves(4 downto 1);  
+    
    U_Core : entity axi_pcie_core.XilinxKcu1500Core
       generic map (
          TPD_G             => TPD_G,
@@ -660,15 +662,10 @@ begin
          dmaClk                            => sysClks(0),
          dmaRst                            => sysRsts(0),
          -- DMA Interfaces
-         dmaObMasters (0)                  => dmaObMasters (0),
-         dmaObSlaves (0)                   => dmaObSlaves (0),
-         dmaIbMasters (0)                  => bypassMaster,
-         dmaIbSlaves (0)                   => bypassSlave,
-         --
-         dmaObMasters (5*0+4 downto 5*0+1) => dmaObMasters (5*0+4 downto 5*0+1),
-         dmaObSlaves (5*0+4 downto 5*0+1)  => dmaObSlaves (5*0+4 downto 5*0+1),
-         dmaIbMasters (5*0+4 downto 5*0+1) => dmaIbMasters (5*0+4 downto 5*0+1),
-         dmaIbSlaves (5*0+4 downto 5*0+1)  => dmaIbSlaves (5*0+4 downto 5*0+1),
+         dmaObMasters (5*0+4 downto 5*0)   => dmaObMasters   (5*0+4 downto 5*0),
+         dmaObSlaves (5*0+4 downto 5*0)    => dmaObSlaves    (5*0+4 downto 5*0),
+         dmaIbMasters (5*0+4 downto 5*0)   => cpuIbMasters   (5*0+4 downto 5*0),
+         dmaIbSlaves (5*0+4 downto 5*0)    => cpuIbSlaves    (5*0+4 downto 5*0),
          -- User General Purpose AXI4 Interfaces (dmaClk domain)
          usrReadMaster                     => usrReadMaster,
          usrReadSlave                      => usrReadSlave,
