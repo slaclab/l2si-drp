@@ -136,6 +136,11 @@ architecture top_level of DrpTDet is
    signal dmaIbMasters    : AxiStreamMasterArray (9 downto 0);
    signal dmaIbSlaves     : AxiStreamSlaveArray  (9 downto 0);
 
+   signal usrReadMaster  : AxiReadMasterType;
+   signal usrReadSlave   : AxiReadSlaveType;
+   signal usrWriteMaster : AxiWriteMasterType;
+   signal usrWriteSlave  : AxiWriteSlaveType;
+
    signal hwClks          : slv                 (7 downto 0);
    signal hwRsts          : slv                 (7 downto 0);
    signal hwObMasters     : AxiStreamMasterArray(7 downto 0);
@@ -154,10 +159,11 @@ architecture top_level of DrpTDet is
    constant MIGTPCI_INDEX_C   : integer := 0;
    constant TDETSEM_INDEX_C   : integer := 1;
    constant TDETTIM_INDEX_C   : integer := 2;
-   constant I2C_INDEX_C       : integer := 3;
+   constant PCIEGPU_INDEX_C   : integer := 3;
+   constant I2C_INDEX_C       : integer := 4;
 
    constant CORE_I2C_C        : boolean := false;
-   constant NUM_AXIL0_MASTERS_C : integer := ite(CORE_I2C_C,3,4);
+   constant NUM_AXIL0_MASTERS_C : integer := ite(CORE_I2C_C,4,5);
    signal mAxil0ReadMasters  : AxiLiteReadMasterArray (NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_MASTER_INIT_C);
    signal mAxil0ReadSlaves   : AxiLiteReadSlaveArray  (NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_READ_SLAVE_EMPTY_OK_C);
    signal mAxil0WriteMasters : AxiLiteWriteMasterArray(NUM_AXIL0_MASTERS_C-1 downto 0) := (others=>AXI_LITE_WRITE_MASTER_INIT_C);
@@ -180,6 +186,9 @@ architecture top_level of DrpTDet is
            addrBits     => 21,
            connectivity => x"FFFF"),
      3 => (baseAddr     => x"00E00000",
+           addrBits     => 21,
+           connectivity => x"FFFF"),
+     4 => (baseAddr     => x"01000000",
            addrBits     => 21,
            connectivity => x"FFFF") );
    constant AXIL1_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL1_MASTERS_C-1 downto 0) := (
@@ -598,6 +607,36 @@ begin
     end generate;
   end generate;
 
+  AxiPcieGpuAsyncCore_inst : entity  axi_pcie_core.AxiPcieGpuAsyncCore
+  generic map (
+    TPD_G => TPD_G,
+    MAX_BUFFERS_G => 4,
+    DMA_AXIS_CONFIG_G => AxiStreamConfigType
+  )
+  port map (
+    axilClk => axilClks (0),
+    axilRst => axilRsts (0),
+    axilReadMaster => mAxil0ReadMasters(PCIEGPU_INDEX_C),
+    axilReadSlave => mAxil0ReadSlaves(PCIEGPU_INDEX_C),
+    axilWriteMaster => mAxil0WriteMasters(PCIEGPU_INDEX_C),
+    axilWriteSlave => mAxil0WriteSlaves(PCIEGPU_INDEX_C),
+    axisClk => sysClks(0),
+    axisRst => sysRsts(0),
+    sAxisMaster => dmaIbMasters(0),
+    sAxisSlave => dmaIbSlaves (0),
+    mAxisMaster => open,
+    mAxisSlave => AXI_STREAM_SLAVE_FORCE_C,
+    bypassMaster => open,
+    bypassSlave => AXI_STREAM_SLAVE_FORCE_C,
+    -- AXI4 Interfaces (axiClk domain)
+    axiClk => sysClks(0),
+    axiRst => sysRsts(0),
+    axiWriteMaster => usrWriteMaster,
+    axiWriteSlave => usrWriteSlave,
+    axiReadMaster => usrReadMaster,
+    axiReadSlave => usrReadSlave
+  );
+  
   U_Core : entity axi_pcie_core.XilinxKcu1500Core
     generic map (
       TPD_G             => TPD_G,
@@ -616,11 +655,20 @@ begin
       dmaClk          => sysClks(0),
       dmaRst          => sysRsts(0),
       -- DMA Interfaces
-      dmaObMasters    => dmaObMasters   (5*0+4 downto 5*0),
-      dmaObSlaves     => dmaObSlaves    (5*0+4 downto 5*0),
-      dmaIbMasters    => dmaIbMasters   (5*0+4 downto 5*0),
-      dmaIbSlaves     => dmaIbSlaves    (5*0+4 downto 5*0),
+      dmaObMasters (5*0+4 downto 5*0+1)    => dmaObMasters   (5*0+4 downto 5*0+1),
+      dmaObSlaves  (5*0+4 downto 5*0+1)   => dmaObSlaves    (5*0+4 downto 5*0+1),
+      dmaIbMasters (5*0+4 downto 5*0+1)   => dmaIbMasters   (5*0+4 downto 5*0+1),
+      dmaIbSlaves (5*0+4 downto 5*0+1)    => dmaIbSlaves    (5*0+4 downto 5*0+1),
       --
+      dmaObMasters (0)    => dmaObMasters   (0),
+      dmaObSlaves  (0)   => dmaObSlaves    (0),
+      dmaIbMasters (0)   => open,
+      dmaIbSlaves (0)    => AXI_STREAM_SLAVE_FORCE_C,
+      -- User General Purpose AXI4 Interfaces (dmaClk domain)
+      usrReadMaster   => usrReadMaster,
+      usrReadSlave    => usrReadSlave,
+      usrWriteMaster  => usrWriteMaster,
+      usrWriteSlave   => usrWriteSlave,
       -- AXI-Lite Interface
       appClk          => axilClks        (0),
       appRst          => axilRsts        (0),
