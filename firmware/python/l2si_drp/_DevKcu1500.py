@@ -59,12 +59,12 @@ class DevKcu1500(pr.Device):
 
         self.add(pcie.AxiGpuAsyncCore(
             name     = 'AxiGpuAsyncCore',
-            offset    = 0x00E0_0000,
+            offset    = 0x00D0_0000,
             expand    = False,
         ))
 
         self.add(drp.I2CBus(
             name     = 'I2CBus',
-            offset    = 0x0100_0000,
+            offset    = 0x00E0_0000,
             expand    = False,
         ))
