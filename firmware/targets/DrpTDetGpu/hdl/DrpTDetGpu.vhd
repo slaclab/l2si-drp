@@ -44,7 +44,7 @@ use work.AppMigPkg.all;
 library unisim;
 use unisim.vcomponents.all;
 
-entity DrpTDet is
+entity DrpTDetGpu is
    generic (
       TPD_G        : time := 1 ns;
       DMA_AXIS_CONFIG_G : AxiStreamConfigType := ssiAxiStreamConfig(dataBytes => 16, tDestBits => 8, tIdBits => 3);  --- 16 Byte (128-bit) tData interface
@@ -111,9 +111,9 @@ entity DrpTDet is
       pciExtRxN     : in    slv(7 downto 0);
       pciExtTxP     : out   slv(7 downto 0);
       pciExtTxN     : out   slv(7 downto 0));
-end DrpTDet;
+end DrpTDetGpu;
 
-architecture top_level of DrpTDet is
+architecture top_level of DrpTDetGpu is
 
    signal sysClks    : slv(1 downto 0);
    signal sysRsts    : slv(1 downto 0);
