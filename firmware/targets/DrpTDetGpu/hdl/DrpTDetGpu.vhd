@@ -187,7 +187,7 @@ architecture top_level of DrpTDetGpu is
             addrBits     => 21,
             connectivity => x"FFFF"),
       2                  => (baseAddr => x"00C00000",
-            addrBits     => 21,
+            addrBits     => 20,
             connectivity => x"FFFF"),
       3                  => (baseAddr => x"00D00000",
             addrBits     => 20,
@@ -596,7 +596,7 @@ begin
                FIFO_ADDR_WIDTH_G   => 4,
                -- AXI Stream Port Configurations
                SLAVE_AXI_CONFIG_G  => AXIO_STREAM_CONFIG_C,
-               MASTER_AXI_CONFIG_G => DMA_STREAM_CONFIG_C)
+               MASTER_AXI_CONFIG_G => DMA_AXIS_CONFIG_G) --DMA_STREAM_CONFIG_C
             port map (
                -- Slave Port
                sAxisClk    => clk200(i),
@@ -650,7 +650,7 @@ begin
          DRIVER_TYPE_ID_G  => toSlv(0, 32),
          DMA_SIZE_G        => 5,
          BUILD_INFO_G      => BUILD_INFO_G,
-         DMA_AXIS_CONFIG_G => DMA_STREAM_CONFIG_C)
+         DMA_AXIS_CONFIG_G => DMA_AXIS_CONFIG_G) --DMA_STREAM_CONFIG_C
       port map (
          ------------------------      
          --  Top Level Interfaces
@@ -720,7 +720,7 @@ begin
                    BUILD_INFO_G      => BUILD_INFO_G,
                    DRIVER_TYPE_ID_G  => toSlv(1, 32),
                    DMA_SIZE_G        => 5,
-                   DMA_AXIS_CONFIG_G => DMA_STREAM_CONFIG_C)
+                   DMA_AXIS_CONFIG_G => DMA_AXIS_CONFIG_G) --DMA_STREAM_CONFIG_C
       port map (
          ------------------------      
          --  Top Level Interfaces
