@@ -4,6 +4,7 @@ import pyrogue
 
 pyrogue.addLibraryPath('../firmware/submodules/axi-pcie-core/python')
 pyrogue.addLibraryPath('../firmware/submodules/surf/python')
+pyrogue.addLibraryPath('../firmware/submodules/lcls-timing-core/python')
 pyrogue.addLibraryPath('../firmware/submodules/l2si-core/python')
 pyrogue.addLibraryPath('../firmware/python')
 
