@@ -2,9 +2,9 @@
 
 import pyrogue
 
-pyrogue.addLibraryPath('../../firmware/submodules/axi-pcie-core/python')
-pyrogue.addLibraryPath('../../firmware/submodules/surf/python')
-pyrogue.addLibraryPath('../../firmware/python')
+pyrogue.addLibraryPath('firmware/submodules/axi-pcie-core/python')
+pyrogue.addLibraryPath('firmware/submodules/surf/python')
+pyrogue.addLibraryPath('firmware/python')
 
 import pyrogue.pydm
 from pyrogue.pydm.data_plugins.rogue_plugin import RoguePlugin
