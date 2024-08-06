@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+import pyrogue
+
+pyrogue.addLibraryPath('../../firmware/submodules/axi-pcie-core/python')
+pyrogue.addLibraryPath('../../firmware/submodules/surf/python')
+pyrogue.addLibraryPath('../../firmware/python')
+
+import pyrogue.pydm
+from pyrogue.pydm.data_plugins.rogue_plugin import RoguePlugin
+import rogue
+import logging
+import pydm
+import argparse
+
+from DrpTDetGpu import DrpTDetGpuRoot
+
+# Set the argument parser
+parser = argparse.ArgumentParser()
+
+# Add arguments
+parser.add_argument(
+    "--dev",
+    type     = str,
+    required = False,
+    default  = "/dev/datadev_0",
+    help     = "path to device",
+)
+
+# Get the arguments
+args = parser.parse_args()
+
+#rogue.Logging.setFilter('pyrogue.memory.block.InterCardRoot.PcieControl[0].Fpga.PrbsTx',rogue.Logging.Debug)
+#rogue.Logging.setFilter('pyrogue.memory.block',rogue.Logging.Debug)
+
+#rogue.Logging.setLevel(rogue.Logging.Debug)
+
+#logger = logging.getLogger('pyrogue.PollQueue')
+#logger.setLevel(logging.DEBUG)
+
+pydm.data_plugins.add_plugin(RoguePlugin)
+
+index = int(args.dev.split('_')[1])
+
+with DrpTDetGpuRoot(pollEn=False, index=index) as root:
+    pyrogue.pydm.runPyDM(serverList=root.zmqServer.address)
