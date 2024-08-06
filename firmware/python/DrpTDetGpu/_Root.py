@@ -8,7 +8,7 @@ class DrpTDetGpuRoot(pr.Root):
     def __init__(self,pollEn=True,index=0):
         pr.Root.__init__(self,name='DrpPgpTDet',description='Tester', pollEn=pollEn)
 
-        self.add(DrpTDetGpu.DevKcu1500.PcieControl(index=index, expand=True))
+        self.add(DrpTDetGpu.PcieControl(index=index, expand=True))
 
         self.zmqServer = pyrogue.interfaces.ZmqServer(root=self, addr='127.0.0.1', port=0)
         self.addInterface(self.zmqServer)
