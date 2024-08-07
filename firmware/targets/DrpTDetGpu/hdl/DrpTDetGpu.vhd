@@ -103,14 +103,14 @@ entity DrpTDetGpu is
       pciRxP        : in    slv(7 downto 0);
       pciRxN        : in    slv(7 downto 0);
       pciTxP        : out   slv(7 downto 0);
-      pciTxN        : out   slv(7 downto 0);
-      -- Extended PCIe Interface
-      pciExtRefClkP : in    sl;
-      pciExtRefClkN : in    sl;
-      pciExtRxP     : in    slv(7 downto 0);
-      pciExtRxN     : in    slv(7 downto 0);
-      pciExtTxP     : out   slv(7 downto 0);
-      pciExtTxN     : out   slv(7 downto 0));
+      pciTxN        : out   slv(7 downto 0));
+      -- -- Extended PCIe Interface
+      -- pciExtRefClkP : in    sl;
+      -- pciExtRefClkN : in    sl;
+      -- pciExtRxP     : in    slv(7 downto 0);
+      -- pciExtRxN     : in    slv(7 downto 0);
+      -- pciExtTxP     : out   slv(7 downto 0);
+      -- pciExtTxN     : out   slv(7 downto 0));
 end DrpTDetGpu;
 
 architecture top_level of DrpTDetGpu is
@@ -453,7 +453,7 @@ begin
    tdetClk <= mmcmClkOut(0)(2);
    tdetRst <= mmcmRstOut(0)(2);
 
-   GEN_SEMI : for i in 0 to 1 generate
+   GEN_SEMI : for i in 0 to 0 generate  --1 earlier
       clk200 (i)  <= mmcmClkOut(i)(0);
       axilClks(i) <= mmcmClkOut(i)(1);
       axilRsts(i) <= mmcmRstOut(i)(1);
@@ -715,42 +715,42 @@ begin
          pciTxP                            => pciTxP,
          pciTxN                            => pciTxN);
 
-   U_Extended : entity axi_pcie_core.XilinxKcu1500PcieExtendedCore
-      generic map (TPD_G             => TPD_G,
-                   BUILD_INFO_G      => BUILD_INFO_G,
-                   DRIVER_TYPE_ID_G  => toSlv(1, 32),
-                   DMA_SIZE_G        => 5,
-                   DMA_AXIS_CONFIG_G => DMA_AXIS_CONFIG_G) --DMA_STREAM_CONFIG_C
-      port map (
-         ------------------------      
-         --  Top Level Interfaces
-         ------------------------        
-         -- DMA Interfaces
-         dmaClk         => sysClks(1),
-         dmaRst         => sysRsts(1),
-         --
-         dmaObMasters   => dmaObMasters (5*1+4 downto 5*1),
-         dmaObSlaves    => dmaObSlaves (5*1+4 downto 5*1),
-         dmaIbMasters   => dmaIbMasters (5*1+4 downto 5*1),
-         dmaIbSlaves    => dmaIbSlaves (5*1+4 downto 5*1),
-         -- AXI-Lite Interface
-         appClk         => axilClks (1),
-         appRst         => axilRsts (1),
-         appReadMaster  => axilReadMasters (1),
-         appReadSlave   => axilReadSlaves (1),
-         appWriteMaster => axilWriteMasters(1),
-         appWriteSlave  => axilWriteSlaves (1),
-         --------------
-         --  Core Ports
-         --------------   
-         -- Extended PCIe Ports 
-         pciRstL        => pciRstL,
-         pciExtRefClkP  => pciExtRefClkP,
-         pciExtRefClkN  => pciExtRefClkN,
-         pciExtRxP      => pciExtRxP,
-         pciExtRxN      => pciExtRxN,
-         pciExtTxP      => pciExtTxP,
-         pciExtTxN      => pciExtTxN);
+   -- U_Extended : entity axi_pcie_core.XilinxKcu1500PcieExtendedCore
+   --    generic map (TPD_G             => TPD_G,
+   --                 BUILD_INFO_G      => BUILD_INFO_G,
+   --                 DRIVER_TYPE_ID_G  => toSlv(1, 32),
+   --                 DMA_SIZE_G        => 5,
+   --                 DMA_AXIS_CONFIG_G => DMA_AXIS_CONFIG_G) --DMA_STREAM_CONFIG_C
+   --    port map (
+   --       ------------------------      
+   --       --  Top Level Interfaces
+   --       ------------------------        
+   --       -- DMA Interfaces
+   --       dmaClk         => sysClks(1),
+   --       dmaRst         => sysRsts(1),
+   --       --
+   --       dmaObMasters   => dmaObMasters (5*1+4 downto 5*1),
+   --       dmaObSlaves    => dmaObSlaves (5*1+4 downto 5*1),
+   --       dmaIbMasters   => dmaIbMasters (5*1+4 downto 5*1),
+   --       dmaIbSlaves    => dmaIbSlaves (5*1+4 downto 5*1),
+   --       -- AXI-Lite Interface
+   --       appClk         => axilClks (1),
+   --       appRst         => axilRsts (1),
+   --       appReadMaster  => axilReadMasters (1),
+   --       appReadSlave   => axilReadSlaves (1),
+   --       appWriteMaster => axilWriteMasters(1),
+   --       appWriteSlave  => axilWriteSlaves (1),
+   --       --------------
+   --       --  Core Ports
+   --       --------------   
+   --       -- Extended PCIe Ports 
+   --       pciRstL        => pciRstL,
+   --       pciExtRefClkP  => pciExtRefClkP,
+   --       pciExtRefClkN  => pciExtRefClkN,
+   --       pciExtRxP      => pciExtRxP,
+   --       pciExtRxN      => pciExtRxN,
+   --       pciExtTxP      => pciExtTxP,
+   --       pciExtTxN      => pciExtTxN);
 
    U_MIG0 : entity work.MigA
       port map (axiReady        => memReady(0),
