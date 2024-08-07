@@ -195,16 +195,16 @@ architecture top_level of DrpTDetGpu is
       4                  => (baseAddr => x"00E00000",
             addrBits     => 21,
             connectivity => x"FFFF"));
-   constant AXIL1_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL1_MASTERS_C-1 downto 0) := (
-      0                  => (baseAddr => x"00800000",
-            addrBits     => 21,
-            connectivity => x"FFFF"),
-      1                  => (baseAddr => x"00A00000",
-            addrBits     => 21,
-            connectivity => x"FFFF"),
-      2                  => (baseAddr => x"00C00000",
-            addrBits     => 21,
-            connectivity => x"FFFF"));
+   -- constant AXIL1_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL1_MASTERS_C-1 downto 0) := (
+   --    0                  => (baseAddr => x"00800000",
+   --          addrBits     => 21,
+   --          connectivity => x"FFFF"),
+   --    1                  => (baseAddr => x"00A00000",
+   --          addrBits     => 21,
+   --          connectivity => x"FFFF"),
+   --    2                  => (baseAddr => x"00C00000",
+   --          addrBits     => 21,
+   --          connectivity => x"FFFF"));
 
    constant AXILT_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(0 downto 0) := (
       0 => AXIL0_CROSSBAR_MASTERS_CONFIG_C(TDETTIM_INDEX_C));
@@ -340,40 +340,40 @@ begin
                 mAxiReadMasters     => mAxil0ReadMasters,
                 mAxiReadSlaves      => mAxil0ReadSlaves);
 
-   U_AxilXbar1 : entity surf.AxiLiteCrossbar
-      generic map (NUM_SLAVE_SLOTS_G  => 1,
-                   NUM_MASTER_SLOTS_G => AXIL1_CROSSBAR_MASTERS_CONFIG_C'length,
-                   MASTERS_CONFIG_G   => AXIL1_CROSSBAR_MASTERS_CONFIG_C)
-      port map (axiClk              => axilClks (1),
-                axiClkRst           => axilRsts (1),
-                sAxiWriteMasters(0) => axilWriteMasters(1),
-                sAxiWriteSlaves (0) => axilWriteSlaves (1),
-                sAxiReadMasters (0) => axilReadMasters (1),
-                sAxiReadSlaves (0)  => axilReadSlaves (1),
-                mAxiWriteMasters    => mAxil1WriteMasters,
-                mAxiWriteSlaves     => mAxil1WriteSlaves,
-                mAxiReadMasters     => mAxil1ReadMasters,
-                mAxiReadSlaves      => mAxil1ReadSlaves);
+   -- U_AxilXbar1 : entity surf.AxiLiteCrossbar
+   --    generic map (NUM_SLAVE_SLOTS_G  => 1,
+   --                 NUM_MASTER_SLOTS_G => AXIL1_CROSSBAR_MASTERS_CONFIG_C'length,
+   --                 MASTERS_CONFIG_G   => AXIL1_CROSSBAR_MASTERS_CONFIG_C)
+   --    port map (axiClk              => axilClks (1),
+   --              axiClkRst           => axilRsts (1),
+   --              sAxiWriteMasters(0) => axilWriteMasters(1),
+   --              sAxiWriteSlaves (0) => axilWriteSlaves (1),
+   --              sAxiReadMasters (0) => axilReadMasters (1),
+   --              sAxiReadSlaves (0)  => axilReadSlaves (1),
+   --              mAxiWriteMasters    => mAxil1WriteMasters,
+   --              mAxiWriteSlaves     => mAxil1WriteSlaves,
+   --              mAxiReadMasters     => mAxil1ReadMasters,
+   --              mAxiReadSlaves      => mAxil1ReadSlaves);
 
    ttimAxilReadMasters (0)            <= mAxil0ReadMasters (TDETTIM_INDEX_C);
    ttimAxilWriteMasters(0)            <= mAxil0WriteMasters(TDETTIM_INDEX_C);
    mAxil0ReadSlaves (TDETTIM_INDEX_C) <= ttimAxilReadSlaves (0);
    mAxil0WriteSlaves(TDETTIM_INDEX_C) <= ttimAxilWriteSlaves (0);
 
-   U_AxilAsync : entity surf.AxiLiteAsync
-      generic map (TPD_G => TPD_G)
-      port map (sAxiClk         => axilClks(1),
-                sAxiClkRst      => axilRsts(1),
-                sAxiReadMaster  => mAxil1ReadMasters (TDETTIM_INDEX_C),
-                sAxiReadSlave   => mAxil1ReadSlaves (TDETTIM_INDEX_C),
-                sAxiWriteMaster => mAxil1WriteMasters(TDETTIM_INDEX_C),
-                sAxiWriteSlave  => mAxil1WriteSlaves (TDETTIM_INDEX_C),
-                mAxiClk         => axilClks(0),
-                mAxiClkRst      => axilRsts(0),
-                mAxiReadMaster  => ttimAxilReadMasters (1),
-                mAxiReadSlave   => ttimAxilReadSlaves (1),
-                mAxiWriteMaster => ttimAxilWriteMasters(1),
-                mAxiWriteSlave  => ttimAxilWriteSlaves (1));
+   -- U_AxilAsync : entity surf.AxiLiteAsync
+   --    generic map (TPD_G => TPD_G)
+   --    port map (sAxiClk         => axilClks(1),
+   --              sAxiClkRst      => axilRsts(1),
+   --              sAxiReadMaster  => mAxil1ReadMasters (TDETTIM_INDEX_C),
+   --              sAxiReadSlave   => mAxil1ReadSlaves (TDETTIM_INDEX_C),
+   --              sAxiWriteMaster => mAxil1WriteMasters(TDETTIM_INDEX_C),
+   --              sAxiWriteSlave  => mAxil1WriteSlaves (TDETTIM_INDEX_C),
+   --              mAxiClk         => axilClks(0),
+   --              mAxiClkRst      => axilRsts(0),
+   --              mAxiReadMaster  => ttimAxilReadMasters (1),
+   --              mAxiReadSlave   => ttimAxilReadSlaves (1),
+   --              mAxiWriteMaster => ttimAxilWriteMasters(1),
+   --              mAxiWriteSlave  => ttimAxilWriteSlaves (1));
 
    U_AxilXbarT : entity surf.AxiLiteCrossbar
       generic map (NUM_SLAVE_SLOTS_G  => 2,
@@ -395,20 +395,20 @@ begin
    mAxil0ReadSlaves (TDETSEM_INDEX_C) <= tdetAxilReadSlaves (0);
    mAxil0WriteSlaves(TDETSEM_INDEX_C) <= tdetAxilWriteSlaves(0);
 
-   tdetAxilReadMasters (1)            <= mAxil1ReadMasters (TDETSEM_INDEX_C);
-   tdetAxilWriteMasters(1)            <= mAxil1WriteMasters(TDETSEM_INDEX_C);
-   mAxil1ReadSlaves (TDETSEM_INDEX_C) <= tdetAxilReadSlaves (1);
-   mAxil1WriteSlaves(TDETSEM_INDEX_C) <= tdetAxilWriteSlaves(1);
+   -- tdetAxilReadMasters (1)            <= mAxil1ReadMasters (TDETSEM_INDEX_C);
+   -- tdetAxilWriteMasters(1)            <= mAxil1WriteMasters(TDETSEM_INDEX_C);
+   -- mAxil1ReadSlaves (TDETSEM_INDEX_C) <= tdetAxilReadSlaves (1);
+   -- mAxil1WriteSlaves(TDETSEM_INDEX_C) <= tdetAxilWriteSlaves(1);
 
    mtpAxilReadMasters (0)             <= mAxil0ReadMasters (MIGTPCI_INDEX_C);
    mtpAxilWriteMasters(0)             <= mAxil0WriteMasters(MIGTPCI_INDEX_C);
    mAxil0ReadSlaves (MIGTPCI_INDEX_C) <= mtpAxilReadSlaves (0);
    mAxil0WriteSlaves(MIGTPCI_INDEX_C) <= mtpAxilWriteSlaves(0);
 
-   mtpAxilReadMasters (1)             <= mAxil1ReadMasters (MIGTPCI_INDEX_C);
-   mtpAxilWriteMasters(1)             <= mAxil1WriteMasters(MIGTPCI_INDEX_C);
-   mAxil1ReadSlaves (MIGTPCI_INDEX_C) <= mtpAxilReadSlaves (1);
-   mAxil1WriteSlaves(MIGTPCI_INDEX_C) <= mtpAxilWriteSlaves(1);
+   -- mtpAxilReadMasters (1)             <= mAxil1ReadMasters (MIGTPCI_INDEX_C);
+   -- mtpAxilWriteMasters(1)             <= mAxil1WriteMasters(MIGTPCI_INDEX_C);
+   -- mAxil1ReadSlaves (MIGTPCI_INDEX_C) <= mtpAxilReadSlaves (1);
+   -- mAxil1WriteSlaves(MIGTPCI_INDEX_C) <= mtpAxilWriteSlaves(1);
 
    U_I2C : entity surf.AxiI2cRegMaster
       generic map (DEVICE_MAP_G   => DEVICE_MAP_C,
