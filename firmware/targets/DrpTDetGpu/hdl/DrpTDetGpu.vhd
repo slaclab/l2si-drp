@@ -767,20 +767,20 @@ begin
                 ddrOut          => ddrOut (0),
                 ddrInOut        => ddrInOut(0));
 
-   U_MIG1 : entity work.MigB
-      port map (axiReady        => memReady(1),
-                --
-                axiClk          => clk200 (1),
-                axiRst          => urst200 (1),
-                axiWriteMasters => memWriteMasters(7 downto 4),
-                axiWriteSlaves  => memWriteSlaves (7 downto 4),
-                axiReadMasters  => memReadMasters (7 downto 4),
-                axiReadSlaves   => memReadSlaves (7 downto 4),
-                --
-                ddrClkP         => ddrClkP (1),
-                ddrClkN         => ddrClkN (1),
-                ddrOut          => ddrOut (1),
-                ddrInOut        => ddrInOut(1));
+   -- U_MIG1 : entity work.MigB
+   --    port map (axiReady        => memReady(1),
+   --              --
+   --              axiClk          => clk200 (1),
+   --              axiRst          => urst200 (1),
+   --              axiWriteMasters => memWriteMasters(7 downto 4),
+   --              axiWriteSlaves  => memWriteSlaves (7 downto 4),
+   --              axiReadMasters  => memReadMasters (7 downto 4),
+   --              axiReadSlaves   => memReadSlaves (7 downto 4),
+   --              --
+   --              ddrClkP         => ddrClkP (1),
+   --              ddrClkN         => ddrClkN (1),
+   --              ddrOut          => ddrOut (1),
+   --              ddrInOut        => ddrInOut(1));
 
    -- Unused user signals
    userLed <= (others => '0');
