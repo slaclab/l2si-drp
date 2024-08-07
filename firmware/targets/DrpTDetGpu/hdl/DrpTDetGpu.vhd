@@ -133,12 +133,12 @@ architecture top_level of DrpTDetGpu is
    signal axilWriteMasters : AxiLiteWriteMasterArray(1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray (1 downto 0);
 
-   signal dmaObMasters : AxiStreamMasterArray (9 downto 0);
-   signal dmaObSlaves  : AxiStreamSlaveArray (9 downto 0);
-   signal dmaIbMasters : AxiStreamMasterArray (9 downto 0);
-   signal dmaIbSlaves  : AxiStreamSlaveArray (9 downto 0);
-   signal cpuIbMasters : AxiStreamMasterArray (9 downto 0);
-   signal cpuIbSlaves  : AxiStreamSlaveArray (9 downto 0);
+   signal dmaObMasters : AxiStreamMasterArray (4 downto 0);
+   signal dmaObSlaves  : AxiStreamSlaveArray (4 downto 0);
+   signal dmaIbMasters : AxiStreamMasterArray (4 downto 0);
+   signal dmaIbSlaves  : AxiStreamSlaveArray (4 downto 0);
+   signal cpuIbMasters : AxiStreamMasterArray (4 downto 0);
+   signal cpuIbSlaves  : AxiStreamSlaveArray (4 downto 0);
 
    signal usrReadMaster  : AxiReadMasterType;
    signal usrReadSlave   : AxiReadSlaveType;
@@ -147,18 +147,18 @@ architecture top_level of DrpTDetGpu is
 
    signal hwClks         : slv (7 downto 0);
    signal hwRsts         : slv (7 downto 0);
-   signal hwObMasters    : AxiStreamMasterArray(7 downto 0);
-   signal hwObSlaves     : AxiStreamSlaveArray (7 downto 0);
-   signal hwIbMasters    : AxiStreamMasterArray(7 downto 0);
-   signal hwIbSlaves     : AxiStreamSlaveArray (7 downto 0);
-   signal hwIbAlmostFull : slv (7 downto 0);
-   signal hwIbFull       : slv (7 downto 0);
+   signal hwObMasters    : AxiStreamMasterArray(3 downto 0);
+   signal hwObSlaves     : AxiStreamSlaveArray (3 downto 0);
+   signal hwIbMasters    : AxiStreamMasterArray(3 downto 0);
+   signal hwIbSlaves     : AxiStreamSlaveArray (3 downto 0);
+   signal hwIbAlmostFull : slv (3 downto 0);
+   signal hwIbFull       : slv (3 downto 0);
 
    signal memReady        : slv (1 downto 0);
-   signal memWriteMasters : AxiWriteMasterArray(7 downto 0);
-   signal memWriteSlaves  : AxiWriteSlaveArray (7 downto 0);
-   signal memReadMasters  : AxiReadMasterArray (7 downto 0);
-   signal memReadSlaves   : AxiReadSlaveArray (7 downto 0);
+   signal memWriteMasters : AxiWriteMasterArray(3 downto 0);
+   signal memWriteSlaves  : AxiWriteSlaveArray (3 downto 0);
+   signal memReadMasters  : AxiReadMasterArray (3 downto 0);
+   signal memReadSlaves   : AxiReadSlaveArray (3 downto 0);
 
    constant MIGTPCI_INDEX_C : integer := 0;
    constant TDETSEM_INDEX_C : integer := 1;
@@ -214,8 +214,8 @@ architecture top_level of DrpTDetGpu is
    signal tdetAxilWriteMasters : AxiLiteWriteMasterArray(1 downto 0);
    signal tdetAxilWriteSlaves  : AxiLiteWriteSlaveArray (1 downto 0);
 
-   signal mtpIbMasters        : AxiStreamMasterArray (9 downto 0);
-   signal mtpIbSlaves         : AxiStreamSlaveArray (9 downto 0);
+   signal mtpIbMasters        : AxiStreamMasterArray (4 downto 0);
+   signal mtpIbSlaves         : AxiStreamSlaveArray (4 downto 0);
    signal mtpAxilReadMasters  : AxiLiteReadMasterArray (1 downto 0);
    signal mtpAxilReadSlaves   : AxiLiteReadSlaveArray (1 downto 0);
    signal mtpAxilWriteMasters : AxiLiteWriteMasterArray(1 downto 0);
@@ -232,14 +232,14 @@ architecture top_level of DrpTDetGpu is
    signal ttimAxilWriteSlave  : AxiLiteWriteSlaveType;
 
 
-   signal migConfig : MigConfigArray(7 downto 0) := (others => MIG_CONFIG_INIT_C);
-   signal migStatus : MigStatusArray(7 downto 0);
+   signal migConfig : MigConfigArray(3 downto 0) := (others => MIG_CONFIG_INIT_C);
+   signal migStatus : MigStatusArray(3 downto 0);
 
 
    signal mmcmClkOut : Slv3Array(1 downto 0);
    signal mmcmRstOut : Slv3Array(1 downto 0);
 
-   constant NDET_C       : integer := 8;
+   constant NDET_C       : integer := 4;
    signal tdetClk        : sl;
    signal tdetRst        : sl;
    signal tdetAlmostFull : slv(NDET_C-1 downto 0);
@@ -423,7 +423,7 @@ begin
                 axiRst         => axilRsts(0));
 
    U_Timing : entity work.TDetTiming
-      generic map (NDET_G          => 8,
+      generic map (NDET_G          => 4,
                    AXIL_BASEADDR_G => AXIL0_CROSSBAR_MASTERS_CONFIG_C(TDETTIM_INDEX_C).baseAddr)
       port map (                        -- AXI-Lite Interface
          axilClk         => axilClks(0),
