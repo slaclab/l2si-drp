@@ -641,8 +641,8 @@ begin
          axiReadSlave    => usrReadSlave
          );
          
-    cpuIbMasters(4 downto 1) <= dmaIbMasters(4 downto 1);     
-    dmaIbSlaves(4 downto 1)  <= cpuIbSlaves(4 downto 1);  
+   --  cpuIbMasters(4 downto 1) <= dmaIbMasters(4 downto 1);     
+   --  dmaIbSlaves(4 downto 1)  <= cpuIbSlaves(4 downto 1);  
     
    U_Core : entity axi_pcie_core.XilinxKcu1500Core
       generic map (
