@@ -39,7 +39,7 @@ class DevKcu1500(pr.Device):
 
         self.add(drp.TDetSemi(
             name     = 'TDetSemi',
-            offset    = 0x00A0_0000,
+            offset    = 0x00D0_0000,
             numLanes  = int(numTimingLanes/2),
             expand    = False,
         ))
@@ -60,7 +60,7 @@ class DevKcu1500(pr.Device):
 
         self.add(pcie.AxiGpuAsyncCore(
             name     = 'AxiGpuAsyncCore',
-            offset    = 0x00D0_0000,
+            offset    = 0x00A0_0000,
             expand    = False,
         ))
 
