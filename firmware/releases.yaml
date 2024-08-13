@@ -2,20 +2,20 @@
 GitBase: ..
 
 Targets:
-  DrpTDet:
-    ImageDir: targets/DrpTDet/images
+  DrpTDetGpu:
+    ImageDir: targets/DrpTDetGpu/images
     Extensions:
       - mcs
-  DrpPgpIlv:
-    ImageDir: targets/DrpPgpIlv/images
-    Extensions:
-      - mcs
+#  DrpPgpIlv:
+#    ImageDir: targets/DrpPgpIlv/images
+#    Extensions:
+#      - mcs
 
 Releases:
   all:
     Primary: True
     Targets:
-      - DrpTDet
-      - DrpPgpIlv
+      - DrpTDetGpu
+#      - DrpPgpIlv
     Types:
       - firmware
