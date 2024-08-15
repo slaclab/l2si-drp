@@ -23,7 +23,7 @@ class DevKcu1500secondary(pr.Device):
         super().__init__(**kwargs)
 
         self.add(pcie.AxiPcieCore(
-            useSpi=True,
+            extended=True,
             offset      = 0x0000_0000,
             numDmaLanes = numDmaLanes,
             expand      = False,
