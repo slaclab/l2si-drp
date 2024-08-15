@@ -200,7 +200,7 @@ architecture top_level of DrpTDetGpu is
             addrBits     => 21,
             connectivity => x"FFFF"),
       1                  => (baseAddr => x"00D00000",
-            addrBits     => 21,
+            addrBits     => 20,
             connectivity => x"FFFF"),
       2                  => (baseAddr => x"00C00000",
             addrBits     => 21,
