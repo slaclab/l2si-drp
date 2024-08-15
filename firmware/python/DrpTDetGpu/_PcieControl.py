@@ -10,6 +10,9 @@ class PcieControl(pr.Device):
     def __init__(self,index=0,**kwargs):
         pr.Device.__init__(self,name=f'PcieControl[{index}]',**kwargs)
 
-        self._dataMap = rogue.hardware.axi.AxiMemMap(f'/dev/datagpu_{index}')
-
-        self.add(DrpTDetGpu.DevKcu1500(memBase=self._dataMap, expand=True))
+        if index == 1:
+            self._dataMap = rogue.hardware.axi.AxiMemMap(f'/dev/datagpu_{index}')
+            self.add(DrpTDetGpu.DevKcu1500(memBase=self._dataMap, expand=True))
+        elif index ==0:
+            self._dataMap = rogue.hardware.axi.AxiMemMap(f'/dev/datagpu_{index}')
+            self.add(DrpTDetGpu.DevKcu1500secondary(memBase=self._dataMap, expand=True))
