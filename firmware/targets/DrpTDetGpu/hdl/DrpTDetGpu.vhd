@@ -203,7 +203,7 @@ architecture top_level of DrpTDetGpu is
             addrBits     => 20,
             connectivity => x"FFFF"),
       2                  => (baseAddr => x"00C00000",
-            addrBits     => 21,
+            addrBits     => 20,
             connectivity => x"FFFF"));
 
    constant AXILT_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(0 downto 0) := (
