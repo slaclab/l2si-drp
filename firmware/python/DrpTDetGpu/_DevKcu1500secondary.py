@@ -38,7 +38,7 @@ class DevKcu1500secondary(pr.Device):
 
         self.add(drp.TDetSemi(
             name     = 'TDetSemi',
-            offset    = 0x00D0_0000,
+            offset    = 0x00A0_0000,
             numLanes  = int(numDmaLanes),
             expand    = False,
         ))
