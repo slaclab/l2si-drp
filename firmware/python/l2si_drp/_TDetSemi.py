@@ -14,7 +14,7 @@ class TDetSemi(pr.Device):
     def __init__(self,
                  name        = 'TDetSemi',
                  description = 'Timing Detector',
-                 numLanes    = 1,
+                 numLanes    = 4,
                  **kwargs):
         super().__init__(
             name        = name,
