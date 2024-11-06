@@ -25,6 +25,7 @@ class DevKcu1500(pr.Device):
 
         self.add(pcie.AxiPcieCore(
             useSpi=True,
+            useGpu=True,
             offset      = 0x0000_0000,
             numDmaLanes = numDmaLanes,
             expand      = False,
@@ -55,12 +56,6 @@ class DevKcu1500(pr.Device):
             name     = 'TDetTiming',
             offset    = 0x00C0_0000,
             numLanes  = numTimingLanes+numPgpLanes,
-            expand    = False,
-        ))
-
-        self.add(pcie.AxiGpuAsyncCore(
-            name     = 'AxiGpuAsyncCore',
-            offset    = 0x00D0_0000,
             expand    = False,
         ))
 

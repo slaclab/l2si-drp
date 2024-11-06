@@ -166,7 +166,7 @@ architecture top_level of DrpTDetGpu is
    constant I2C_INDEX_C     : integer := 3;
 
    constant CORE_I2C_C          : boolean                                                 := false;
-   constant NUM_AXIL0_MASTERS_C : integer                                                 := ite(CORE_I2C_C, 4, 5);
+   constant NUM_AXIL0_MASTERS_C : integer                                                 := ite(CORE_I2C_C, 3, 4);
    signal mAxil0ReadMasters     : AxiLiteReadMasterArray (NUM_AXIL0_MASTERS_C-1 downto 0) := (others => AXI_LITE_READ_MASTER_INIT_C);
    signal mAxil0ReadSlaves      : AxiLiteReadSlaveArray (NUM_AXIL0_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_OK_C);
    signal mAxil0WriteMasters    : AxiLiteWriteMasterArray(NUM_AXIL0_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_MASTER_INIT_C);
