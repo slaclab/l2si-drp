@@ -163,8 +163,7 @@ architecture top_level of DrpTDetGpu is
    constant MIGTPCI_INDEX_C : integer := 0;
    constant TDETSEM_INDEX_C : integer := 1;
    constant TDETTIM_INDEX_C : integer := 2;
-   constant PCIEGPU_INDEX_C : integer := 3;
-   constant I2C_INDEX_C     : integer := 4;
+   constant I2C_INDEX_C     : integer := 3;
 
    constant CORE_I2C_C          : boolean                                                 := false;
    constant NUM_AXIL0_MASTERS_C : integer                                                 := ite(CORE_I2C_C, 4, 5);
@@ -189,10 +188,7 @@ architecture top_level of DrpTDetGpu is
       2                  => (baseAddr => x"00C00000",
             addrBits     => 20,
             connectivity => x"FFFF"),
-      3                  => (baseAddr => x"00D00000",
-            addrBits     => 20,
-            connectivity => x"FFFF"),
-      4                  => (baseAddr => x"00E00000",
+      3                  => (baseAddr => x"00E00000",
             addrBits     => 21,
             connectivity => x"FFFF"));
    constant AXIL1_CROSSBAR_MASTERS_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL1_MASTERS_C-1 downto 0) := (
@@ -230,6 +226,11 @@ architecture top_level of DrpTDetGpu is
    signal ttimAxilReadSlave   : AxiLiteReadSlaveType;
    signal ttimAxilWriteMaster : AxiLiteWriteMasterType;
    signal ttimAxilWriteSlave  : AxiLiteWriteSlaveType;
+   
+   signal gpuReadMaster   : AxiLiteReadMasterType;
+   signal gpuReadSlave    : AxiLiteReadSlaveType;
+   signal gpuWriteMaster  : AxiLiteWriteMasterType;
+   signal  gpuWriteSlave   : AxiLiteWriteSlaveType;
 
 
    signal migConfig : MigConfigArray(7 downto 0) := (others => MIG_CONFIG_INIT_C);
@@ -620,10 +621,10 @@ begin
       port map (
          axilClk         => axilClks (0),
          axilRst         => axilRsts (0),
-         axilReadMaster  => mAxil0ReadMasters(PCIEGPU_INDEX_C),
-         axilReadSlave   => mAxil0ReadSlaves(PCIEGPU_INDEX_C),
-         axilWriteMaster => mAxil0WriteMasters(PCIEGPU_INDEX_C),
-         axilWriteSlave  => mAxil0WriteSlaves(PCIEGPU_INDEX_C),
+         axilReadMaster  => gpuReadMaster,
+         axilReadSlave   => gpuReadSlave,
+         axilWriteMaster => gpuWriteMaster,
+         axilWriteSlave  => gpuWriteSlave,
          axisClk         => sysClks(0),
          axisRst         => sysRsts(0),
          sAxisMaster     => dmaIbMasters(0),
@@ -678,6 +679,11 @@ begin
          appReadSlave                      => axilReadSlaves (0),
          appWriteMaster                    => axilWriteMasters(0),
          appWriteSlave                     => axilWriteSlaves (0),
+         -- AXI-Lite Interface
+         gpuReadMaster                     => gpuReadMaster,
+         gpuReadSlave                      => gpuReadSlave,
+         gpuWriteMaster                    => gpuWriteMaster,
+         gpuWriteSlave                     => gpuWriteSlave,
          --------------
          --  Core Ports
          --------------
