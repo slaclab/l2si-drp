@@ -12,6 +12,7 @@ import pyrogue as pr
 
 import LclsTimingCore
 import l2si_core
+import time
 
 class TDetTiming(pr.Device):
     def __init__(self,
@@ -41,3 +42,10 @@ class TDetTiming(pr.Device):
             numDetectors = numLanes,
         ))
 
+    def refClockRate(self):
+        tvb = time.perf_counter()
+        vvb = self.TimingFrameRx.TxClkCount.get()
+        time.sleep(0.1)
+        tve = time.perf_counter()
+        vve = self.TimingFrameRx.TxClkCount.get()
+        return 16.e-6*(vve-vvb)/(tve-tvb)

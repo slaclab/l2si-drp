@@ -11,7 +11,12 @@
 
 import pyrogue as pr
 
+from surf.devices.transceivers import Qsfp
+import surf.devices.silabs as silabs
+import l2si_drp
+
 import struct
+import time
 
 class QSFPMonitor(pr.Device):
     def __init__(self,
@@ -141,13 +146,21 @@ class I2CBus(pr.Device):
             }
         ))
 
-        self.add(QSFPMonitor(
+#        self.add(QSFPMonitor(
+        self.add(Qsfp(
             name   = 'QSFP',
             offset = 0x400
         ))
 
-#        self.add(SI570(
-#            name   = 'SI570',
-#            offset = 0x800
-#        ))
+        self.add(l2si_drp.Si570(
+#        self.add(silabs.Si570(
+            factory_freq = 156.25,
+            name   = 'Si570',
+            offset = 0x800,
+        ))
 
+    def programSi570(self, f):
+        
+        self.select.set(0x04)
+
+        self.Si570.set_freq(None,None,f)

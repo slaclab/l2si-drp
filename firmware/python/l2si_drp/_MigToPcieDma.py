@@ -10,6 +10,76 @@
 #-----------------------------------------------------------------------------
 import pyrogue as pr
 
+class MigChannel(pr.Device):
+    def __init__(self,
+                 name        = 'MigChannel',
+                 description = 'Local RAM to PCIE',
+                 blockSize   = 21, 
+                **kwargs):
+        super().__init__(
+            name        = name,
+            description = description,
+            **kwargs
+        )
+
+        self.add(pr.RemoteVariable(
+            name      = 'BlockSize',
+            offset    = 0x00,
+            bitSize   = 4,
+            mode      = 'RW',
+        ))
+
+        self.add(pr.RemoteVariable(
+            name      = 'BlocksPause',
+            offset    = 0x04,
+            bitSize   = 30-blockSize,
+            bitOffset = 8,
+            mode      = 'RW',
+        ))
+
+        self.add(pr.RemoteVariable(
+            name      = 'BlocksFree',
+            offset    = 0x08,
+            bitSize   = 30-blockSize,
+            mode      = 'RO',
+        ))
+
+        self.add(pr.RemoteVariable(
+            name      = 'BlocksQueued',
+            offset    = 0x8,
+            bitSize   = 30-blockSize,
+            bitOffset = 12,
+            mode      = 'RO',
+        ))
+
+        self.add(pr.RemoteVariable(
+            name      = 'WriteQueCnt',
+            offset    = 0x0c,
+            bitSize   = 30-blockSize,
+            mode      = 'RO',
+        ))
+
+        self.add(pr.RemoteVariable(
+            name      = 'WriteIndex',
+            offset    = 0x10,
+            bitSize   = 30-blockSize,
+            mode      = 'RO',
+        ))
+
+        self.add(pr.RemoteVariable(
+            name      = 'WriteCompleteIndex',
+            offset    = 0x14,
+            bitSize   = 30-blockSize,
+            mode      = 'RO',
+        ))
+
+        self.add(pr.RemoteVariable(
+            name      = 'ReadIndex',
+            offset    = 0x18,
+            bitSize   = 30-blockSize,
+            mode      = 'RO',
+        ))
+
 class MigToPcieDma(pr.Device):
     def __init__(self,
                  name        = 'MigToPcieDma',
@@ -24,64 +94,18 @@ class MigToPcieDma(pr.Device):
             **kwargs
         )
 
+        self.add(pr.RemoteVariable(
+            name      = 'MonEnable',
+            offset    = 0,
+            bitSize   = 1,
+            mode      = 'RW',
+        ))
+
         for i in range(numLanes):
-
-            self.add(pr.RemoteVariable(
-                name      = 'BlockSize_%d'%i,
-                offset    = 0x0 + 32*i,
-                bitSize   = 4,
-                mode      = 'RW',
-            ))
-
-            self.add(pr.RemoteVariable(
-                name      = 'BlocksPause_%d'%i,
-                offset    = 0x4 + 32*i,
-                bitSize   = 30-blockSize,
-                bitOffset = 8,
-                mode      = 'RW',
-            ))
-
-            self.add(pr.RemoteVariable(
-                name      = 'BlocksFree_%d'%i,
-                offset    = 0x8 + 32*i,
-                bitSize   = 30-blockSize,
-                mode      = 'RO',
-            ))
-
-            self.add(pr.RemoteVariable(
-                name      = 'BlocksQueued_%d'%i,
-                offset    = 0x8 + 32*i,
-                bitSize   = 30-blockSize,
-                bitOffset = 12,
-                mode      = 'RO',
-            ))
-
-            self.add(pr.RemoteVariable(
-                name      = 'WriteQueCnt_%d'%i,
-                offset    = 0xc + 32*i,
-                bitSize   = 30-blockSize,
-                mode      = 'RO',
-            ))
-
-            self.add(pr.RemoteVariable(
-                name      = 'WrIndex_%d'%i,
-                offset    = 0x10 + 32*i,
-                bitSize   = 30-blockSize,
-                mode      = 'RO',
-            ))
-
-            self.add(pr.RemoteVariable(
-                name      = 'WcIndex_%d'%i,
-                offset    = 0x14 + 32*i,
-                bitSize   = 30-blockSize,
-                mode      = 'RO',
-            ))
-
-            self.add(pr.RemoteVariable(
-                name      = 'RdIndex_%d'%i,
-                offset    = 0x18 + 32*i,
-                bitSize   = 30-blockSize,
-                mode      = 'RO',
+            self.add(MigChannel(
+                name      = f'Channel[{i}]',
+                offset    = 0x80+32*i,
+                blockSize = blockSize,
             ))
 
         for i in range(monClks):
@@ -90,6 +114,7 @@ class MigToPcieDma(pr.Device):
                 name     = 'MonClkRate_%d'%i,
                 offset   = 0x100+4*i,
                 bitSize  = 29,
+                disp     = '{}',
                 mode     = 'RO',
             ))
 
