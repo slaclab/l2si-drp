@@ -34,7 +34,7 @@ class Si570(pr.Device):
                 bitSize = 8,
                 hidden = True,
                 overlapEn = True,
-#                verify = False,
+                verify = False,
             ))
 
         # Extract N1 register value
