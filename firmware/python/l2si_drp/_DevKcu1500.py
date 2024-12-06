@@ -10,15 +10,18 @@
 #-----------------------------------------------------------------------------
 import pyrogue as pr
 
+import l2si_drp                                as drp
 import axipcie                                 as pcie
 import cameralink_gateway                      as clDev
-import lcls2_pgp_fw_lib.hardware.XilinxKcu1500 as xilinxKcu1500
+import surf.protocols.pgp                      as pgp
 
 class DevKcu1500(pr.Device):
     def __init__(self,
-                 numDmaLanes = 2,
-                 numTimingLanes = 1,
-                 numPgpLanes = 1,
+                 numDmaLanes = 4,
+                 numTimingLanes = 8,
+                 numPgpLanes = 4,
+                 tdet     = True,
+                 gpu      = False,
                  pgp3     = False,
                  **kwargs):
         super().__init__(**kwargs)
@@ -36,26 +39,36 @@ class DevKcu1500(pr.Device):
             expand    = False,
         ))
 
-        self.add(drp.TDetSemi(
-            name     = 'TDetSemi',
-            offset    = 0x00A0_0000,
-            numLanes  = numTimingLanes,
-            expand    = False,
-        ))
+        if tdet:
+            self.add(drp.TDetSemi(
+                name     = 'TDetSemi',
+                offset    = 0x00A0_0000,
+                numLanes  = int(numTimingLanes/2),
+                expand    = False,
+            ))
 
-        self.add(drp.PgpSemi(
-            name     = 'PgpSemi',
-            offset    = 0x00B0_0000,
-            numLanes  = numPgpLanes,
-            expand    = False,
-        ))
+            self.add(drp.TDetTiming(
+                name     = 'TDetTiming',
+                offset    = 0x00C0_0000,
+                numLanes  = numTimingLanes,
+                expand    = False,
+            ))
 
-        self.add(drp.TDetTiming(
-            name     = 'TDetTiming',
-            offset    = 0x00C0_0000,
-            numLanes  = numTimingLanes+numPgpLanes,
-            expand    = False,
-        ))
+        elif numPgpLanes:
+            for i in range(numPgpLanes):
+                self.add(pgp.Pgp3AxiL(
+                    name    = f'Pgp3AxiL[{i}]',
+                    offset  = 0x00A0_8000 + i*0x10000,
+                    numVc   = 1,
+                    writeEn = True,
+                ))
+
+        if gpu:
+            self.add(pcie.AxiGpuAsyncCore(
+                name     = 'AxiGpuAsyncCore',
+                offset    = 0x00D0_0000,
+                expand    = False,
+            ))
 
         self.add(drp.I2CBus(
             name     = 'I2CBus',

@@ -8,54 +8,48 @@
 # contained in the LICENSE.txt file.
 #-----------------------------------------------------------------------------
 import pyrogue as pr
-import pyrogue.interfaces.simulation
-
-import rogue
+import l2si_drp
+import pyrogue.interfaces
+import logging
 
 class Root(pr.Root):
-    """ A generic Root class that sets up all of the common sub-devices and hardware connections that a PGP project would have."""
-    def __init__(self,
-                 dev      = '/dev/datadev_0',# path to PCIe device
-                 pollEn   = True,            # Enable automatic polling registers
-                 initRead = True,            # Read all registers at start of the system            
-                 numLanes = 4,               # Number of PGP lanes
-                 enVcMask = 0xD,             # Enable lane mask: Don't connect data stream (VC1) by default because intended for C++ process
-                 pgp3     = False,           # Not used here but capture so it doesn't go into super call
-                 **kwargs):
-        
-        super().__init__(**kwargs)
-        
-        # Simplify the Command Tab
-        self.WriteAll.hidden      = True        
-        self.ReadAll.hidden       = True        
-        self.SaveState.hidden     = True        
-        self.SaveConfig.hidden    = True        
-        self.LoadConfig.hidden    = True        
-        self.Initialize.hidden    = True        
-        self.SetYamlConfig.hidden = True        
-        self.GetYamlConfig.hidden = True        
-        self.GetYamlState.hidden  = True        
-        self.HardReset.hidden     = True        
-        self.CountReset.hidden    = True        
-        self.ClearLog.hidden      = True        
-        self.numLanes              = numLanes        
-        
-        # Enable Init after config
-        self.InitAfterConfig._default = True
-          
-        # Create PCIE memory mapped interface
-        if (dev != 'sim'):
-            # Set the timeout
-            self._timeout = 1.0 # 1.0 default
-            # Start up flags
-            self._pollEn   = pollEn
-            self._initRead = initRead
-        else:
-            # Set the timeout
-            self._timeout = 100.0 # firmware simulation slow and timeout base on real time (not simulation time)
-            # Start up flags
-            self._pollEn   = False
-            self._initRead = False
 
+    def __init__(self,name,description,pollEn,devname,gpu):
+        pr.Root.__init__(self,name=name,description=description,pollEn=pollEn)
 
-        # Create arrays to be filled
+        self.add(l2si_drp.PcieControl(devname=devname, expand=True, tdet=tdet, gpu=gpu))
+
+        self.zmqServer = pyrogue.interfaces.ZmqServer(root=self, addr='127.0.0.1', port=0)
+        self.addInterface(self.zmqServer)
+
+    def start(self,**kwargs):
+        super().start(**kwargs)
+        self.ReadAll()
+
+        if self.PcieControl.DevKcu1500.AxiPcieCore.AxiVersion.DRIVER_TYPE_ID_G.get()==0:
+            # remove the I2c bus
+            pass
+
+class DrpTDetRoot(Root):
+    def __init__(self,pollEn=True,devname='/dev/datadev_1'):
+        Root.__init__(self,name='DrpTDet',description='Timing receiver',
+                      pollEn=pollEn, devname=devname, gpu=False)
+
+class DrpTDetGpuRoot(Root):
+    def __init__(self,pollEn=True,devname='/dev/datagpu_0'):
+        Root.__init__(self,name='DrpTDetGpu',description='Timing receiver',
+                      pollEn=pollEn, devname=devname, gpu=True)
+
+class DrpPgpIlvRoot(pr.Root):
+    def __init__(self,pollEn=True,devname='/dev/datadev_1'):
+        pr.Root.__init__(self,name='DrpPgpIlv',description='HSD receiver',
+                      pollEn=pollEn)
+
+        self.add(l2si_drp.PcieControl(devname=devname, expand=True, tdet=False, gpu=False))
+
+        self.zmqServer = pyrogue.interfaces.ZmqServer(root=self, addr='127.0.0.1', port=0)
+        self.addInterface(self.zmqServer)
+
+    def start(self,**kwargs):
+        super().start(**kwargs)
+        self.ReadAll()
