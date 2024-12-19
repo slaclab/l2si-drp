@@ -17,7 +17,7 @@ class Root(pr.Root):
     def __init__(self,name,description,pollEn,devname,gpu):
         pr.Root.__init__(self,name=name,description=description,pollEn=pollEn)
 
-        self.add(l2si_drp.PcieControl(devname=devname, expand=True, tdet=tdet, gpu=gpu))
+        self.add(l2si_drp.PcieControl(devname=devname, expand=True, gpu=gpu))
 
         self.zmqServer = pyrogue.interfaces.ZmqServer(root=self, addr='127.0.0.1', port=0)
         self.addInterface(self.zmqServer)
