@@ -32,14 +32,14 @@ class DevKcu1500(pr.Device):
             expand      = False,
         ))
 
-        self.add(drp.MigToPcieDma(
-            name     = 'MigToPcieDma',
-            offset    = 0x0080_0000,
-            numLanes  = numDmaLanes,
-            expand    = False,
-        ))
-
         if tdet:
+            self.add(drp.MigToPcieDma(
+                name     = 'MigToPcieDma',
+                offset    = 0x0080_0000,
+                numLanes  = numDmaLanes,
+                expand    = False,
+            ))
+
             self.add(drp.TDetSemi(
                 name     = 'TDetSemi',
                 offset    = 0x00A0_0000,
@@ -55,6 +55,13 @@ class DevKcu1500(pr.Device):
             ))
 
         elif numPgpLanes:
+            self.add(drp.MigIlvToPcieDma(
+                name     = 'MigIlvToPcieDma',
+                offset    = 0x0080_0000,
+                numLanes  = numDmaLanes,
+                expand    = False,
+            ))
+
             for i in range(numPgpLanes):
                 self.add(pgp.Pgp3AxiL(
                     name    = f'Pgp3AxiL[{i}]',
@@ -62,6 +69,47 @@ class DevKcu1500(pr.Device):
                     numVc   = 1,
                     writeEn = True,
                 ))
+                self.add(pr.RemoteVariable(
+                    name        = f'RxLinkId[{i}]',
+                    description = 'PGP LinkID Received',
+                    offset      = 0x00A4_0000 + i*4,
+                    bitSize     = 32,
+                    bitOffset   = 0,
+                    mode        = 'RO',
+                    base        = pr.UInt
+                ))
+                self.add(pr.RemoteVariable(
+                    name        = f'TxLinkId[{i}]',
+                    description = 'PGP LinkID Advertised',
+                    offset      = 0x00A4_0010 + i*4,
+                    bitSize     = 32,
+                    bitOffset   = 0,
+                    mode        = 'RW',
+                    base        = pr.UInt
+                ))
+
+            self.add(pr.RemoteVariable(
+                name       = 'PgpQPllLock',
+                offset     = 0x00A4_0020,
+                bitSize    = 1,
+                bitOffset  = 0,
+                mode       = 'RO',
+                base       = pr.UInt
+            ))
+
+            def addReset(name,offset):
+                self.add(pr.RemoteVariable(
+                    name       = name,
+                    offset     = 0x00A4_0024,
+                    bitSize    = 1,
+                    bitOffset  = offset,
+                    mode       = 'RW',
+                    base       = pr.UInt
+                ))
+
+            addReset('PgpQPllReset',0)
+            addReset('PgpTxReset',1)
+            addReset('PgpRxReset',2)
 
         if gpu:
             self.add(pcie.AxiGpuAsyncCore(
