@@ -6,16 +6,21 @@ Targets:
     ImageDir: targets/DrpTDetGpu/images
     Extensions:
       - mcs
-#  DrpPgpIlv:
-#    ImageDir: targets/DrpPgpIlv/images
-#    Extensions:
-#      - mcs
+  DrpTDet:
+    ImageDir: targets/DrpTDet/images
+    Extensions:
+      - mcs
+  DrpPgpIlv:
+    ImageDir: targets/DrpPgpIlv/images
+    Extensions:
+      - mcs
 
 Releases:
   all:
     Primary: True
     Targets:
       - DrpTDetGpu
-#      - DrpPgpIlv
+      - DrpTDet
+      - DrpPgpIlv
     Types:
       - firmware
