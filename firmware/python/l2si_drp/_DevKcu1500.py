@@ -12,7 +12,6 @@ import pyrogue as pr
 
 import l2si_drp                                as drp
 import axipcie                                 as pcie
-import cameralink_gateway                      as clDev
 import surf.protocols.pgp                      as pgp
 
 class DevKcu1500(pr.Device):
