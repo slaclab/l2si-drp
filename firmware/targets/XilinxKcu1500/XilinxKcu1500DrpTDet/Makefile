@@ -23,9 +23,11 @@ export BYPASS_RECONFIG = 1
 
 export TIMING_EXT_PKG = 1
 
+export TOP_DIR = $(abspath $(PWD)/../../..)
+
 # Define target output
 target: prom
 
 # Use top level makefile
-include ../../targets/shared_config.mk
-include ../../submodules/ruckus/system_vivado.mk
+include $(TOP_DIR)/targets/shared_config.mk
+include $(TOP_DIR)/submodules/ruckus/system_vivado.mk

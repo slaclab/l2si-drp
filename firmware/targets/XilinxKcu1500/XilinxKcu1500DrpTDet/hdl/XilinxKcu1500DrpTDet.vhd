@@ -2,7 +2,7 @@
 -- File       : DrpTDet.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2017-10-24
--- Last update: 2025-01-23
+-- Last update: 2025-02-03
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ use work.AppMigPkg.all;
 library unisim;
 use unisim.vcomponents.all;
 
-entity DrpTDet is
+entity XilinxKcu1500DrpTDet is
    generic (
       TPD_G        : time := 1 ns;
       BUILD_INFO_G : BuildInfoType);
@@ -109,9 +109,9 @@ entity DrpTDet is
       pciExtRxN       : in    slv(7 downto 0);
       pciExtTxP       : out   slv(7 downto 0);
       pciExtTxN       : out   slv(7 downto 0) );
-end DrpTDet;
+end XilinxKcu1500DrpTDet;
 
-architecture top_level of DrpTDet is
+architecture top_level of XilinxKcu1500DrpTDet is
 
    signal sysClks    : slv(1 downto 0);
    signal sysRsts    : slv(1 downto 0);
@@ -422,8 +422,7 @@ begin
       timingRxN        => timingRxN,
       timingTxP        => timingTxP,
       timingTxN        => timingTxN,
-      timingRefClkInP  => timingRefClkP,
-      timingRefClkInN  => timingRefClkN,
+      userClk156       => userClk156,
       timingRefClkOut  => timingRefClk );
 
   tdetClk <= mmcmClkOut(0)(2);

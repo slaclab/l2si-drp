@@ -1,11 +1,11 @@
--------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 -- Title      : 
 -------------------------------------------------------------------------------
 -- File       : TDetTiming.vhd
 -- Author     : Matt Weaver <weaver@slac.stanford.edu>
 -- Company    : SLAC National Accelerator Laboratory
 -- Created    : 2015-07-08
--- Last update: 2024-01-29
+-- Last update: 2025-02-03
 -- Platform   : 
 -- Standard   : VHDL'93/02
 -------------------------------------------------------------------------------
@@ -45,7 +45,8 @@ entity TDetTiming is
       TPD_G               : time             := 1 ns;
       NDET_G              : natural          := 1;
       AXIL_BASEADDR_G     : slv(31 downto 0) := (others=>'0');
-      AXIL_RINGB_G        : boolean          := false );
+      AXIL_RINGB_G        : boolean          := false;
+      SIMULATION_G        : boolean          := false );
    port (
       --------------------------------------------
       -- Trigger Interface (Timing clock domain)
@@ -79,8 +80,7 @@ entity TDetTiming is
       timingRxN        : in  sl;
       timingTxP        : out sl;
       timingTxN        : out sl;
-      timingRefClkInP  : in  sl;
-      timingRefClkInN  : in  sl;
+      userClk156       : in  sl := '1';
       timingRefClkOut  : out sl;
       timingRecClkOut  : out sl;
       timingBusOut     : out TimingBusType );
@@ -104,7 +104,8 @@ architecture mapping of TDetTiming is
    signal txUsrClk       : sl;
    signal txUsrRst       : sl;
    signal txOutClk       : sl;
-   signal loopback       : slv(31 downto 0);
+   signal localReg       : slv(31 downto 0);
+   signal loopback       : slv(2 downto 0);
    signal fbTx           : TimingPhyType;
    signal timingPhy      : TimingPhyType;
    signal timingBus      : TimingBusType;
@@ -131,12 +132,17 @@ architecture mapping of TDetTiming is
      TUSER_BITS_C  => 2,
      TUSER_MODE_C  => TUSER_NORMAL_C );
 
+   signal refClk, refClkDiv2, refRst, mmcmRst, mmcmLocked : sl;
+   
 begin
 
    triggerClk      <= rxOutClk;
    timingRecClkOut <= rxOutClk;
    timingBusOut    <= timingBus;
-
+   timingRefClkOut <= refClkDiv2;
+   mmcmRst         <= localReg(31);
+   loopback        <= localReg(2 downto 0);
+   
    U_AxilXbar0 : entity surf.AxiLiteCrossbar
     generic map ( NUM_SLAVE_SLOTS_G  => 1,
                   NUM_MASTER_SLOTS_G => AXIL_MASTERS_CONFIG_C'length,
@@ -155,72 +161,90 @@ begin
    -------------------------------------------------------------------------------------------------
    -- Clock Buffers
    -------------------------------------------------------------------------------------------------
-   TIMING_REFCLK_IBUFDS_GTE3 : IBUFDS_GTE3
-      generic map (
-         REFCLK_EN_TX_PATH  => '0',
-         REFCLK_HROW_CK_SEL => "00",    -- 2'b01: ODIV2 = Divide-by-2 version of O
-         REFCLK_ICNTL_RX    => "00")
-      port map (
-         I     => timingRefClkInP,
-         IB    => timingRefClkInN,
-         CEB   => '0',
-         ODIV2 => timingRefClkDiv,
-         O     => timingRefClk);
 
-   U_BUFG_GT : BUFG_GT
-    port map (
-      I       => timingRefClkDiv,
-      CE      => '1',
-      CLR     => '0',
-      CEMASK  => '1',
-      CLRMASK => '1',
-      DIV     => "000",              -- Divide by 1
-      O       => timingRefClkOut );
+     --------------------------
+     -- Reference LCLS-II Clock
+     --------------------------
+     U_371MHz : entity surf.ClockManagerUltraScale
+       generic map(
+         TPD_G              => TPD_G,
+         SIMULATION_G       => SIMULATION_G,
+         TYPE_G             => "MMCM",
+         INPUT_BUFG_G       => false,
+         FB_BUFG_G          => true,
+         RST_IN_POLARITY_G  => '1',
+         NUM_CLOCKS_G       => 1,
+         -- MMCM attributes
+         BANDWIDTH_G        => "OPTIMIZED",
+         CLKIN_PERIOD_G     => 6.4,     -- 156.25 MHz
+         DIVCLK_DIVIDE_G    => 7,       -- 22.321 MHz = 156.25MHz/7
+         CLKFBOUT_MULT_F_G  => 52.000,  -- 1160.714 MHz = 22.321 MHz x 52
+         CLKOUT0_DIVIDE_F_G => 3.125)   -- 371.429 MHz = 1160.714 MHz/3.125
+       port map(
+         clkIn     => userClk156,
+         rstIn     => mmcmRst,
+         clkOut(0) => refClk,
+         rstOut(0) => refRst,
+         locked    => mmcmLocked);
 
+      U_refClkDiv2 : BUFGCE_DIV
+         generic map (
+            BUFGCE_DIVIDE => 2)
+         port map (
+            I   => refClk,
+            CE  => '1',
+            CLR => '0',
+            O   => refClkDiv2);
+   
    -------------------------------------------------------------------------------------------------
-   -- GTH Timing Receiver
+   -- GTY Timing Receiver
    -------------------------------------------------------------------------------------------------
-     TimingGthCoreWrapper_1 : entity lcls_timing_core.TimingGtCoreWrapper
-       generic map ( TPD_G            => TPD_G,
-                     EXTREF_G         => true,
-                     AXIL_BASE_ADDR_G => AXIL_MASTERS_CONFIG_C(1).baseAddr,
-                     ADDR_BITS_G      => 12,
-                     GTH_DRP_OFFSET_G => x"00008000"
-                     )
-       port map (
-         axilClk        => axilClk,
-         axilRst        => axilRst,
-         axilReadMaster => axilReadMasters (TIMING_GT_INDEX_C),
-         axilReadSlave  => axilReadSlaves  (TIMING_GT_INDEX_C),
-         axilWriteMaster=> axilWriteMasters(TIMING_GT_INDEX_C),
-         axilWriteSlave => axilWriteSlaves (TIMING_GT_INDEX_C),
-         stableClk      => axilClk,
-         stableRst      => axilRst,
-         gtRefClk       => timingRefClk,
-         gtRefClkDiv2   => '0',
-         gtRxP          => timingRxP,
-         gtRxN          => timingRxN,
-         gtTxP          => timingTxP,
-         gtTxN          => timingTxN,
-         rxControl      => rxControl,
-         rxStatus       => rxStatus,
-         rxUsrClkActive => '1',
-         rxCdrStable    => rxCdrStable,
-         rxUsrClk       => rxUsrClk,
-         rxData         => rxData,
-         rxDataK        => rxDataK,
-         rxDispErr      => rxDispErr,
-         rxDecErr       => rxDecErr,
-         rxOutClk       => rxOutClk,
-         txControl      => timingPhy.control,
-         txStatus       => txStatus,
-         txUsrClk       => txUsrClk,
-         txUsrClkActive => '1',
-         txData         => timingPhy.data,
-         txDataK        => timingPhy.dataK,
-         txOutClk       => txUsrClk,
-         loopback       => loopback(2 downto 0));
 
+   TimingGtyCoreWrapper_1 : entity lcls_timing_core.TimingGtCoreWrapper
+     generic map ( TPD_G            => TPD_G,
+                   EXTREF_G         => false,
+                   AXIL_BASE_ADDR_G => AXIL_MASTERS_CONFIG_C(1).baseAddr,
+                   ADDR_BITS_G      => 12,
+                   GTY_DRP_OFFSET_G => x"00008000"
+                   )
+     port map (
+       axilClk        => axilClk,
+       axilRst        => axilRst,
+       axilReadMaster => axilReadMasters (TIMING_GT_INDEX_C),
+       axilReadSlave  => axilReadSlaves  (TIMING_GT_INDEX_C),
+       axilWriteMaster=> axilWriteMasters(TIMING_GT_INDEX_C),
+       axilWriteSlave => axilWriteSlaves (TIMING_GT_INDEX_C),
+       stableClk      => axilClk,
+       stableRst      => axilRst,
+       gtRefClk       => '0',       -- Using GTGREFCLK instead
+       gtRefClkDiv2   => refClkDiv2,
+       gtRxP          => timingRxP,
+       gtRxN          => timingRxN,
+       gtTxP          => timingTxP,
+       gtTxN          => timingTxN,
+       -- GTGREFCLK Interface Option
+       gtgRefClk       => refClk,
+       cpllRefClkSel   => "111",
+       -- Rx ports
+       rxControl      => rxControl,
+       rxStatus       => rxStatus,
+       rxUsrClkActive => mmcmLocked,
+--         rxCdrStable    => rxCdrStable,
+       rxUsrClk       => rxUsrClk,
+       rxData         => rxData,
+       rxDataK        => rxDataK,
+       rxDispErr      => rxDispErr,
+       rxDecErr       => rxDecErr,
+       rxOutClk       => rxOutClk,
+       txControl      => timingPhy.control,
+       txStatus       => txStatus,
+       txUsrClk       => txUsrClk,
+       txUsrClkActive => mmcmLocked,
+       txData         => timingPhy.data,
+       txDataK        => timingPhy.dataK,
+       txOutClk       => txUsrClk,
+       loopback       => loopback(2 downto 0));
+   
    txUsrRst         <= not (txStatus.resetDone);
    rxRst            <= not (rxStatus.resetDone);
    rxUsrClk         <= rxOutClk;
@@ -303,8 +327,8 @@ begin
        axiReadSlave     => axilReadSlaves  (TDET_TIM_INDEX_C),
        axiWriteMaster   => axilWriteMasters(TDET_TIM_INDEX_C),
        axiWriteSlave    => axilWriteSlaves (TDET_TIM_INDEX_C),
-       writeRegister(0) => loopback,
-       readRegister (0) => x"FACEFACE" );
+       writeRegister(0) => localReg,
+       readRegister (0) => x"00FACE00" );
        
      
    GEN_DET : for i in 0 to NDET_G-1 generate
