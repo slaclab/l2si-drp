@@ -27,16 +27,19 @@ set_clock_groups -asynchronous \
                  -group [get_clocks -include_generated_clocks userClkP] \
                  -group [get_clocks -include_generated_clocks userRefClkP]
 
-create_generated_clock -name timingRefClk [get_pins {U_Timing/U_371MHz/MmcmGen.U_Mmcm/CLKOUT0}]
+create_generated_clock -name timingRefClk [get_pins -hier -filter {NAME =~ U_Timing/U_371MHz/MmcmGen.U_Mmcm/CLKOUT0}]
+create_generated_clock -name timingRecClk [get_pins -hier -filter {NAME =~ U_Timing/TimingGthCoreWrapper_1/LOCREF_G.U_TimingGthCore/inst/*/RXOUTCLK}]
+create_generated_clock -name timingTxClk [get_pins -hier -filter {NAME =~ U_Timing/TimingGthCoreWrapper_1/LOCREF_G.TIMING_TXCLK_BUFG_GT/O}]
 create_generated_clock -name clk200_0 [get_pins {GEN_SEMI[0].U_MMCM/MmcmGen.U_Mmcm/CLKOUT0}]
 create_generated_clock -name axilClk0 [get_pins {GEN_SEMI[0].U_MMCM/MmcmGen.U_Mmcm/CLKOUT1}]
 create_generated_clock -name tdetClk0 [get_pins {GEN_SEMI[0].U_MMCM/MmcmGen.U_Mmcm/CLKOUT2}]
 create_generated_clock -name clk200_1 [get_pins {GEN_SEMI[1].U_MMCM/MmcmGen.U_Mmcm/CLKOUT0}]
 create_generated_clock -name axilClk1 [get_pins {GEN_SEMI[1].U_MMCM/MmcmGen.U_Mmcm/CLKOUT1}]
 
-
 set_clock_groups -asynchronous \
                  -group [get_clocks timingRefClk] \
+                 -group [get_clocks timingRecClk] \
+                 -group [get_clocks timingTxClk] \
                  -group [get_clocks clk200_0] \
                  -group [get_clocks clk200_1] \
                  -group [get_clocks axilClk0] \
